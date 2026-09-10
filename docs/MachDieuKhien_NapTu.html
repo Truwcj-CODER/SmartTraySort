@@ -1,0 +1,323 @@
+<title>Đấu dây từng cục — nắp tủ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  :root {
+    --bg: #f5f6f4;
+    --panel: #ffffff;
+    --panel-2: #eceeea;
+    --ink: #17191c;
+    --ink-soft: #565d64;
+    --line: #d3d6d1;
+    --live: #d4380d;
+    --live-bg: #fbeae4;
+    --zero: #17191c;
+    --sig: #1f6fb2;
+    --sig-bg: #e2eef7;
+    --green: #2f7d4f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181b; --panel: #1e2125; --panel-2: #262a2f;
+      --ink: #e9eae7; --ink-soft: #a2a8ac; --line: #343941;
+      --live: #ff6b3d; --live-bg: #3a1c12; --zero: #cdd0d3;
+      --sig: #5aa9e0; --sig-bg: #14293a; --green: #59c187;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16181b; --panel: #1e2125; --panel-2: #262a2f;
+    --ink: #e9eae7; --ink-soft: #a2a8ac; --line: #343941;
+    --live: #ff6b3d; --live-bg: #3a1c12; --zero: #cdd0d3;
+    --sig: #5aa9e0; --sig-bg: #14293a; --green: #59c187;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 44px 20px 80px; }
+
+  .eyebrow {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--live); margin: 0 0 10px;
+  }
+  h1 {
+    font-family: Archivo, system-ui, sans-serif; font-weight: 700;
+    font-size: clamp(25px, 5vw, 34px); line-height: 1.15; text-wrap: balance; margin: 0 0 12px;
+  }
+  .lede { color: var(--ink-soft); max-width: 60ch; margin: 0 0 26px; }
+
+  h2 {
+    font-family: Archivo, system-ui, sans-serif; font-weight: 600; font-size: 19px;
+    margin: 44px 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--line);
+  }
+
+  .callout {
+    background: var(--live-bg); border: 1px solid var(--live);
+    border-radius: 10px; padding: 14px 16px; margin: 0 0 8px; font-size: 14px;
+  }
+  .callout b { color: var(--live); }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 18px; margin: 16px 0;
+  }
+  .card h3 {
+    font-family: Archivo, system-ui, sans-serif; font-weight: 700; font-size: 16px;
+    margin: 0 0 4px;
+  }
+  .card .role { font-size: 13px; color: var(--ink-soft); margin: 0 0 14px; }
+  .card-grid { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+  @media (min-width: 620px) { .card-grid { grid-template-columns: 190px 1fr; } }
+  .card svg { display: block; width: 100%; max-width: 190px; height: auto; margin: 0 auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 10.5px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-soft); font-weight: 600; }
+  tbody tr:last-child td { border-bottom: none; }
+  .screw {
+    font-family: "JetBrains Mono", ui-monospace, monospace; font-weight: 700; font-size: 13px;
+    display: inline-block; min-width: 30px; text-align: center;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px;
+  }
+  .wire { display: inline-flex; align-items: center; gap: 7px; }
+  .dot { width: 12px; height: 12px; border-radius: 3px; flex: none; border: 1px solid rgba(0,0,0,.15); }
+  .dot.r { background: var(--live); }
+  .dot.k { background: var(--zero); }
+  .dot.b { background: var(--sig); }
+  code {
+    font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.9em;
+    background: var(--sig-bg); color: var(--sig); padding: 1px 5px; border-radius: 4px;
+  }
+
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 8px 0; }
+  ol.steps li { position: relative; padding: 11px 0 11px 48px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  ol.steps li:last-child { border-bottom: none; }
+  ol.steps li::before {
+    counter-increment: s; content: counter(s); position: absolute; left: 0; top: 11px;
+    width: 30px; height: 30px; display: grid; place-items: center;
+    font-family: "JetBrains Mono", ui-monospace, monospace; font-weight: 700; font-size: 13px;
+    color: var(--live); border: 2px solid var(--live); border-radius: 50%;
+  }
+  ol.steps b { font-weight: 600; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--ink-soft); margin: 0 0 4px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+
+  svg text { font-family: "JetBrains Mono", ui-monospace, monospace; }
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">Tủ điện · nắp tủ</p>
+  <h1>Đấu dây từng cục một</h1>
+  <p class="lede">Mỗi thẻ là một thiết bị. Chỉ cần nhìn: vít này nối dây màu gì, đi tới đâu. Bỏ qua sơ đồ nguyên lý.</p>
+
+  <div class="legend">
+    <span><span class="dot r"></span> dây đỏ · +24 V</span>
+    <span><span class="dot k"></span> dây đen · 0 V</span>
+    <span><span class="dot b"></span> dây xanh · tín hiệu về PLC</span>
+  </div>
+
+  <div class="callout">
+    <b>Về số in trên nút:</b> nút nấm và nút START <b>không in số 11/12/13/14</b>. Khối tiếp điểm phía sau chỉ ghi <code>NC</code> / <code>NO</code> hoặc một ký hiệu tiếp điểm. Số ở đây chỉ để gọi tên cho dễ nói. Việc cần làm:
+    <br>• E‑Stop → dùng khối ghi <b>NC</b> (thường đóng).
+    <br>• START → dùng khối ghi <b>NO</b> (thường hở).
+    <br>• 2 vít của mỗi khối <b>không phân biệt chiều</b>, đấu vít nào trước cũng được.
+    <br><br><b>Riêng relay K1:</b> số <code>1 4 5 8 9 12 13 14</code> <b>có in trên ĐẾ relay</b> (nhìn mặt trên đế, chỗ bắt vít) và <b>sơ đồ đấu in ngay trên thân relay</b> — cứ theo hình in trên con relay của bạn là chuẩn nhất.
+    <br>• NXJ‑2Z = 8 chân, 2 khối chuyển mạch (DPDT). Chuẩn: <code>13‑14</code> cuộn · <code>9</code> chung / <code>5</code> NO / <code>1</code> NC · <code>12</code> chung / <code>8</code> NO / <code>4</code> NC.
+    <br>• <b>Hậu tố "D" theo catalog CHiNT = đèn LED báo</b>, không chắc là diode. Nhìn hình in trên relay: nếu có ký hiệu diode hoặc dấu <code>+ −</code> ở chân cuộn → phải đúng cực (chân + về +24 V). Nếu chỉ có LED hoặc không ký hiệu → cuộn hút cả 2 chiều (LED có thể không sáng nếu đấu ngược).
+  </div>
+
+  <h2>1 · Nút nhấn nấm E‑Stop (S0)</h2>
+  <div class="card">
+    <div class="card-grid">
+      <svg viewBox="0 0 190 180" role="img" aria-label="Nút E-Stop nhìn từ sau: đầu nấm đỏ, một khối tiếp điểm NC hai vít. Vít trên nối dây đỏ từ thanh 24V. Vít dưới nối 2 dây đỏ đi tiếp tới nút START và tới chân 9 của K1.">
+        <circle cx="95" cy="34" r="26" fill="var(--live)" stroke="var(--zero)" stroke-width="2"/>
+        <circle cx="95" cy="34" r="11" fill="var(--zero)" opacity="0.22"/>
+        <rect x="55" y="66" width="80" height="96" rx="7" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <text x="95" y="92" font-size="12" font-weight="700" fill="var(--ink)" text-anchor="middle">NC</text>
+        <text x="95" y="106" font-size="8.5" fill="var(--ink-soft)" text-anchor="middle">thường đóng</text>
+        <rect x="72" y="118" width="16" height="16" rx="3" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <rect x="102" y="118" width="16" height="16" rx="3" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <line x1="80" y1="118" x2="80" y2="70" stroke="var(--live)" stroke-width="4"/>
+        <line x1="110" y1="134" x2="110" y2="170" stroke="var(--live)" stroke-width="4"/>
+        <text x="80" y="64" font-size="8.5" fill="var(--ink-soft)" text-anchor="middle">+24 V</text>
+        <text x="110" y="180" font-size="8.5" fill="var(--ink-soft)" text-anchor="middle">đi tiếp</text>
+      </svg>
+      <table>
+        <thead><tr><th>Vít</th><th>Nối dây</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="screw">vít&nbsp;A</span></td>
+            <td><span class="wire"><span class="dot r"></span> 1 dây đỏ từ <b>thanh +24 V</b></span></td>
+          </tr>
+          <tr>
+            <td><span class="screw">vít&nbsp;B</span></td>
+            <td>
+              <span class="wire"><span class="dot r"></span> 2 dây đỏ đi tiếp:</span><br>
+              → nút START vít A<br>
+              → relay K1 · chân <b>9</b>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13px;color:var(--ink-soft);margin:12px 0 0">Nhấn nút → khối NC hở ra → cả mạch phía sau mất +24 V → K1 nhả. Đứt dây cũng vậy — đó là lý do dùng NC.</p>
+  </div>
+
+  <h2>2 · Nút nhấn START có đèn xanh (S1)</h2>
+  <div class="card">
+    <div class="card-grid">
+      <svg viewBox="0 0 190 200" role="img" aria-label="Nút START nhìn từ sau: đầu nút xanh, một khối NO hai vít và một module đèn hai vít. NO vít A nhận dây đỏ từ E-Stop. NO vít B đi dây đỏ tới chân 14 của K1, đồng thời cầu sang một chân đèn. Chân đèn còn lại đi dây đen về 0V.">
+        <circle cx="95" cy="30" r="22" fill="var(--green)" stroke="var(--zero)" stroke-width="2"/>
+        <rect x="40" y="60" width="66" height="76" rx="7" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <text x="73" y="84" font-size="12" font-weight="700" fill="var(--ink)" text-anchor="middle">NO</text>
+        <text x="73" y="97" font-size="8" fill="var(--ink-soft)" text-anchor="middle">thường hở</text>
+        <rect x="54" y="104" width="14" height="14" rx="3" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <rect x="78" y="104" width="14" height="14" rx="3" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <text x="61" y="132" font-size="8" fill="var(--ink-soft)" text-anchor="middle">A</text>
+        <text x="85" y="132" font-size="8" fill="var(--ink-soft)" text-anchor="middle">B</text>
+        <rect x="116" y="60" width="60" height="76" rx="7" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <text x="146" y="88" font-size="10" font-weight="700" fill="var(--ink)" text-anchor="middle">ĐÈN</text>
+        <text x="146" y="100" font-size="8" fill="var(--ink-soft)" text-anchor="middle">LED 24V</text>
+        <rect x="130" y="104" width="14" height="14" rx="3" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <rect x="150" y="104" width="14" height="14" rx="3" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <line x1="61" y1="104" x2="61" y2="64" stroke="var(--live)" stroke-width="4"/>
+        <text x="61" y="58" font-size="8" fill="var(--ink-soft)" text-anchor="middle">từ E‑Stop</text>
+        <line x1="85" y1="118" x2="85" y2="160" stroke="var(--live)" stroke-width="4"/>
+        <path d="M85 150 L137 150 L137 118" fill="none" stroke="var(--live)" stroke-width="3"/>
+        <text x="95" y="174" font-size="8" fill="var(--ink-soft)" text-anchor="middle">tới K1 · 14</text>
+        <line x1="157" y1="118" x2="157" y2="185" stroke="var(--zero)" stroke-width="4"/>
+        <text x="157" y="196" font-size="8" fill="var(--ink-soft)" text-anchor="middle">0 V</text>
+      </svg>
+      <table>
+        <thead><tr><th>Vít</th><th>Nối dây</th></tr></thead>
+        <tbody>
+          <tr><td><span class="screw">NO&nbsp;A</span></td><td><span class="wire"><span class="dot r"></span> dây đỏ từ <b>E‑Stop vít B</b></span></td></tr>
+          <tr><td><span class="screw">NO&nbsp;B</span></td><td>
+            <span class="wire"><span class="dot r"></span> dây đỏ tới <b>K1 · chân 14 (+)</b></span><br>
+            + cầu 1 đoạn dây sang <b>đèn vít 1</b>
+          </td></tr>
+          <tr><td><span class="screw">đèn&nbsp;1</span></td><td><span class="wire"><span class="dot r"></span> cầu từ <b>NO B</b> (đèn sáng khi K1 hút)</span></td></tr>
+          <tr><td><span class="screw">đèn&nbsp;2</span></td><td><span class="wire"><span class="dot k"></span> dây đen về <b>thanh 0 V</b></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13px;color:var(--ink-soft);margin:12px 0 0">Nút NO nhấn‑nhả nên phải có K1 tự giữ (xem thẻ 4). Đèn xanh nằm song song cuộn K1 → K1 hút là sáng.</p>
+  </div>
+
+  <h2>3 · Đèn báo đỏ H1</h2>
+  <div class="card">
+    <div class="card-grid">
+      <svg viewBox="0 0 190 160" role="img" aria-label="Đèn đỏ H1 hai vít X1 X2. X1 nối dây đỏ lên thanh 24V. X2 nối dây đỏ xuống chân 4 của K1.">
+        <circle cx="95" cy="34" r="24" fill="var(--live)" stroke="var(--zero)" stroke-width="2"/>
+        <circle cx="95" cy="34" r="24" fill="#fff" opacity="0.16"/>
+        <rect x="57" y="64" width="76" height="64" rx="7" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <text x="95" y="88" font-size="10" font-weight="700" fill="var(--ink)" text-anchor="middle">đèn đỏ</text>
+        <text x="95" y="100" font-size="8" fill="var(--ink-soft)" text-anchor="middle">Φ22 · 24 VDC</text>
+        <rect x="70" y="106" width="16" height="16" rx="3" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <rect x="104" y="106" width="16" height="16" rx="3" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <line x1="78" y1="106" x2="78" y2="68" stroke="var(--live)" stroke-width="4"/>
+        <line x1="112" y1="122" x2="112" y2="150" stroke="var(--live)" stroke-width="4"/>
+        <text x="78" y="62" font-size="8" fill="var(--ink-soft)" text-anchor="middle">+24 V</text>
+        <text x="112" y="160" font-size="8" fill="var(--ink-soft)" text-anchor="middle">K1 · 4</text>
+      </svg>
+      <table>
+        <thead><tr><th>Vít</th><th>Nối dây</th></tr></thead>
+        <tbody>
+          <tr><td><span class="screw">X1</span></td><td><span class="wire"><span class="dot r"></span> dây đỏ lên <b>thanh +24 V</b></span></td></tr>
+          <tr><td><span class="screw">X2</span></td><td><span class="wire"><span class="dot r"></span> dây đỏ xuống <b>K1 · chân 4</b></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13px;color:var(--ink-soft);margin:12px 0 0">X1 luôn có +24 V. Đường mát của đèn đi qua K1: chưa hút thì thông (đèn sáng), hút thì hở (đèn tắt). LED không kén cực — không sáng thì đảo X1↔X2.</p>
+  </div>
+
+  <h2>4 · Relay K1 — chỉ 6 dây đụng tới</h2>
+  <div class="card">
+    <div class="card-grid">
+      <svg viewBox="0 0 220 250" role="img" aria-label="Đế relay K1 8 chân, mỗi chân một dây riêng đi ra mép. Chân 14 nhận dây đỏ từ START. Chân 5 có dây đỏ cầu vòng lên nối chân 14. Chân 9 nhận dây đỏ từ E-Stop. Chân 13 và 12 đi dây đen về 0V. Chân 4 nhận dây đỏ từ đèn đỏ. Chân 8 đi dây xanh xuống PLC. Chân 1 bỏ trống. Chân 9 và chân 5 không có dây nối trực tiếp với nhau.">
+        <!-- self-hold bridge 5 -> 14, routed over the top, clear of pin 9 -->
+        <path d="M110 96 L110 22 L70 22 L70 46" fill="none" stroke="var(--live)" stroke-width="3"/>
+        <text x="116" y="18" font-size="8" font-weight="700" fill="var(--live)" text-anchor="start">cầu tự giữ  5 → 14</text>
+
+        <rect x="50" y="30" width="120" height="175" rx="8" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.5"/>
+        <text x="110" y="46" font-size="11" font-weight="700" fill="var(--ink)" text-anchor="middle">ĐẾ K1</text>
+        <g font-size="11" font-weight="700" fill="var(--ink)" text-anchor="middle">
+          <rect x="60" y="55" width="22" height="20" rx="3" fill="var(--panel)" stroke="var(--live)" stroke-width="1.5"/><text x="71" y="69">14</text>
+          <rect x="138" y="55" width="22" height="20" rx="3" fill="var(--panel)" stroke="var(--zero)" stroke-width="1.5"/><text x="149" y="69">13</text>
+          <rect x="60" y="105" width="22" height="20" rx="3" fill="var(--panel)" stroke="var(--live)" stroke-width="1.5"/><text x="71" y="119">9</text>
+          <rect x="99" y="105" width="22" height="20" rx="3" fill="var(--panel)" stroke="var(--live)" stroke-width="1.5"/><text x="110" y="119">5</text>
+          <rect x="138" y="105" width="22" height="20" rx="3" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.5" stroke-dasharray="3 2"/><text x="149" y="119" fill="var(--ink-soft)">1</text>
+          <rect x="60" y="155" width="22" height="20" rx="3" fill="var(--panel)" stroke="var(--zero)" stroke-width="1.5"/><text x="71" y="169">12</text>
+          <rect x="99" y="155" width="22" height="20" rx="3" fill="var(--panel)" stroke="var(--sig)" stroke-width="1.5"/><text x="110" y="169">8</text>
+          <rect x="138" y="155" width="22" height="20" rx="3" fill="var(--panel)" stroke="var(--live)" stroke-width="1.5"/><text x="149" y="169">4</text>
+        </g>
+        <text x="110" y="92" font-size="7.5" fill="var(--ink-soft)" text-anchor="middle">cuộn</text>
+        <text x="110" y="142" font-size="7.5" fill="var(--ink-soft)" text-anchor="middle">khối 1</text>
+        <text x="110" y="192" font-size="7.5" fill="var(--ink-soft)" text-anchor="middle">khối 2</text>
+
+        <!-- individual wire stubs, each straight to an edge -->
+        <line x1="60" y1="65" x2="14" y2="65" stroke="var(--live)" stroke-width="3"/>
+        <text x="12" y="62" font-size="8" fill="var(--ink-soft)" text-anchor="end">từ START</text>
+        <line x1="160" y1="65" x2="208" y2="65" stroke="var(--zero)" stroke-width="3"/>
+        <text x="208" y="62" font-size="8" fill="var(--ink-soft)" text-anchor="end">0 V</text>
+        <path d="M60 115 L34 115 L34 132 L14 132" fill="none" stroke="var(--live)" stroke-width="3"/>
+        <text x="12" y="135" font-size="8" fill="var(--ink-soft)" text-anchor="end">từ E‑Stop</text>
+        <line x1="60" y1="165" x2="14" y2="165" stroke="var(--zero)" stroke-width="3"/>
+        <text x="12" y="162" font-size="8" fill="var(--ink-soft)" text-anchor="end">0 V</text>
+        <line x1="160" y1="165" x2="208" y2="165" stroke="var(--live)" stroke-width="3"/>
+        <text x="208" y="162" font-size="8" fill="var(--ink-soft)" text-anchor="end">từ đèn đỏ</text>
+        <line x1="110" y1="175" x2="110" y2="238" stroke="var(--sig)" stroke-width="3"/>
+        <text x="110" y="248" font-size="8" fill="var(--sig)" text-anchor="middle">xuống PLC · DI a.7</text>
+      </svg>
+      <table>
+        <thead><tr><th>Chân đế</th><th>Nối dây</th></tr></thead>
+        <tbody>
+          <tr><td><span class="screw">9</span></td><td><span class="wire"><span class="dot r"></span> dây đỏ từ <b>E‑Stop vít B</b></span></td></tr>
+          <tr><td><span class="screw">14</span></td><td>
+            <span class="wire"><span class="dot r"></span> dây đỏ từ <b>START NO B</b></span><br>
+            + <span class="wire"><span class="dot r"></span> cầu từ <b>chân 5</b></span> &nbsp;<span style="color:var(--ink-soft)">← nếu thân relay có dấu <b>+</b> thì chân đó về +24 V</span>
+          </td></tr>
+          <tr><td><span class="screw">5</span></td><td><span class="wire"><span class="dot r"></span> cầu về <b>chân 14</b></span> &nbsp;<span style="color:var(--ink-soft)">(dây tự giữ)</span></td></tr>
+          <tr><td><span class="screw">13</span></td><td><span class="wire"><span class="dot k"></span> dây đen về <b>thanh 0 V</b></span></td></tr>
+          <tr><td><span class="screw">12</span></td><td><span class="wire"><span class="dot k"></span> dây đen về <b>thanh 0 V</b></span></td></tr>
+          <tr><td><span class="screw">4</span></td><td><span class="wire"><span class="dot r"></span> dây đỏ từ <b>đèn đỏ X2</b></span></td></tr>
+          <tr><td><span class="screw">8</span></td><td><span class="wire"><span class="dot b"></span> dây xanh tới <b>PLC · DI a.7</b></span></td></tr>
+          <tr><td><span class="screw">1</span></td><td style="color:var(--ink-soft)">bỏ trống — đừng đấu nhầm dây tự giữ vào đây</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2>5 · PLC — 4 dây</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Chân PLC</th><th>Nối dây</th></tr></thead>
+      <tbody>
+        <tr><td><span class="screw">L+</span></td><td><span class="wire"><span class="dot r"></span> dây đỏ từ <b>thanh +24 V</b></span></td></tr>
+        <tr><td><span class="screw">M</span></td><td><span class="wire"><span class="dot k"></span> dây đen từ <b>thanh 0 V</b></span></td></tr>
+        <tr><td><span class="screw">1M</span></td><td><span class="wire"><span class="dot r"></span> dây đỏ từ <b>thanh +24 V</b></span> &nbsp;<span style="color:var(--ink-soft)">(vì cảm biến NPN)</span></td></tr>
+        <tr><td><span class="screw">DI a.7</span></td><td><span class="wire"><span class="dot b"></span> dây xanh từ <b>K1 · chân 8</b></span> &nbsp;<span style="color:var(--ink-soft)">= I0.7</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Bấm thì mạch làm gì</h2>
+  <ol class="steps">
+    <li><b>Bật CB1</b> — thanh có +24 V. K1 chưa hút → chân 4–12 thông → <b>đèn đỏ sáng</b>. Có điện, chưa chạy.</li>
+    <li><b>Ấn START</b> — NO đóng → +24 V (qua E‑Stop) vào cuộn K1 chân 14 → <b>K1 hút</b>.</li>
+    <li><b>Buông tay</b> — chân 9→5 đã đóng, +24 V đi vòng đó giữ cuộn. K1 <b>tự giữ</b>. Đèn đỏ tắt, nút xanh sáng, <code>I0.7 = 1</code>.</li>
+    <li><b>Ấn E‑STOP</b> — khối NC hở → K1 nhả → nút xanh tắt, <b>đèn đỏ sáng lại</b>, <code>I0.7 = 0</code> → máy dừng.</li>
+    <li><b>Xoay nhả E‑STOP</b> — đèn đỏ <b>vẫn sáng</b>, phải ấn START lần nữa mới chạy lại.</li>
+  </ol>
+
+  <div class="callout" style="margin-top:24px">
+    <b>Thử nguội trước khi cấp 48 V:</b> cắt nhánh nguồn 48 V ra. Bật CB1 → đèn đỏ sáng. Ấn START → nghe K1 "cạch", đèn đỏ tắt, nút xanh sáng. Ấn E‑Stop → đèn đỏ sáng lại. Đo thông mạch chân 8 xuống 0 V ở cả 2 trạng thái <b>trước khi</b> cắm dây vào <code>DI a.7</code>.
+  </div>
+</div>

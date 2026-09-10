@@ -1,0 +1,79 @@
+// ============================================================================
+//  05_FC_CmdDecode.scl  -  Doc lenh tu Orange Pi / HMI
+//
+//  Co che bat tay (quan trong khi master o xa qua mang LAN):
+//    1. Orange Pi ghi 1 lan ca khoi HR0..HR7 (Command, SelPos, CtrlBits, CmdSeq,
+//       TargetX, TargetY) bang lenh Modbus FC16 - ghi nhieu thanh ghi cung luc.
+//    2. PLC thay Command <> 0 thi nhan lenh, chep CmdSeq sang AckSeq, roi
+//       XOA Command ve 0. Client doc AckSeq = seq minh vua gui -> biet lenh da toi.
+//    3. Chay xong PLC ghi DoneSeq = seq do va Result = ket qua.
+//       Client doi DoneSeq = seq cua minh -> biet lenh da xong, khong can doan thoi gian.
+//
+//  Nho vay lenh khong bao gio bi chay 2 lan, va client biet chinh xac trang thai
+//  du mang co tre hay mat goi.
+//
+//  Khong can bo bat suon (khong can bien Static) -> dung duoc FC.
+// ============================================================================
+
+FUNCTION "FC_CmdDecode" : Void
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.2
+
+   VAR_OUTPUT
+      CmdCode : Int;      // ma lenh 1..14, 0 = khong co lenh moi
+      CmdPulse : Bool;    // TRUE dung 1 vong quet
+      CmdSeq : Word;      // so thu tu lenh
+      SelPos : Int;       // so o, da kiem tra; ngoai 1..500 tra ve 0
+      TargetX : Real;
+      TargetY : Real;
+      TargetZ : Real;
+      AxesEnable : Bool;  // bit8 CtrlBits - Orange Pi cho phep cap dien truc
+      JogXp : Bool;
+      JogXn : Bool;
+      JogYp : Bool;
+      JogYn : Bool;
+      JogZp : Bool;
+      JogZn : Bool;
+   END_VAR
+
+   VAR_IN_OUT
+      IF_DB : "typIF";    // truyen vao "DB_Interface"
+   END_VAR
+
+BEGIN
+
+   // --- co lenh moi hay khong ---
+   IF #IF_DB.Command <> 0 THEN
+      #CmdCode := WORD_TO_INT(#IF_DB.Command);
+      #CmdPulse := TRUE;
+      #IF_DB.Command := 0;         // ack: xoa ngay de chi tac dung 1 vong quet
+   ELSE
+      #CmdCode := 0;
+      #CmdPulse := FALSE;
+   END_IF;
+
+   #CmdSeq := #IF_DB.CmdSeq;
+
+   // --- kiem tra so o hop le ---
+   // Chan tren la kich thuoc MANG (500), khong phai so ro dang dung. FB moi la
+   // cho biet bang hien co bao nhieu ro that su, vi lenh 13 co the doi so do.
+   IF (#IF_DB.SelPos >= 1) AND (#IF_DB.SelPos <= 500) THEN
+      #SelPos := #IF_DB.SelPos;
+   ELSE
+      #SelPos := 0;                // 0 = khong hop le, FB se tra Result = 5
+   END_IF;
+
+   #TargetX := #IF_DB.TargetX;
+   #TargetY := #IF_DB.TargetY;
+   #TargetZ := #IF_DB.TargetZ;
+
+   // --- cac bit tac dung lien tuc ---
+   #JogXp := #IF_DB.CtrlBits.%X0;
+   #JogXn := #IF_DB.CtrlBits.%X1;
+   #JogYp := #IF_DB.CtrlBits.%X2;
+   #JogYn := #IF_DB.CtrlBits.%X3;
+   #JogZp := #IF_DB.CtrlBits.%X4;
+   #JogZn := #IF_DB.CtrlBits.%X5;
+   #AxesEnable := #IF_DB.CtrlBits.%X8;
+
+END_FUNCTION

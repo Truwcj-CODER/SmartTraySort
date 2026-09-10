@@ -1,0 +1,16 @@
+// ============================================================================
+//  03_DB_Interface.scl  -  Vung lenh / trang thai dung chung HMI + app ngoai
+//
+//  QUAN TRONG: DB nay PHAI bo "Optimized block access"
+//  (chuot phai vao DB -> Properties -> bo tick Optimized block access)
+//  thi MB_SERVER moi anh xa duoc thanh holding register va app ngoai moi doc duoc.
+//  Neu chi dung HMI thi de optimized cung chay binh thuong.
+// ============================================================================
+
+DATA_BLOCK "DB_Interface"
+{ S7_Optimized_Access := 'FALSE' }
+VERSION : 0.1
+"typIF"
+
+BEGIN
+END_DATA_BLOCK

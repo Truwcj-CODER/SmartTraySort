@@ -1,0 +1,853 @@
+// ============================================================================
+//  04_FB_XY_Tray.scl  -  May trang thai dieu khien 3 truc, 20 khay
+//     Axis_X  ngang qua lai  |  Axis_Y  lat trai phai  |  Axis_Z  len xuong
+//
+//  PLC chi la co cau chap hanh. Orange Pi gui 1 ma lenh kem so khay,
+//  PLC tu tra bang toa do, tu tinh duong di, chay xong bao ket qua.
+//
+//  Chu trinh lenh 1:
+//     chay X va Z CUNG LUC toi khay -> dung yen cho het rung
+//     -> LAT dung ben cua khay, giu, tra ve giua
+//     -> Y ve giua -> Z va X CUNG LUC ve cho -> bao xong
+//
+//  Hai truc X va Z chay song song vi chung nam tren hai kenh xung roi nhau,
+//  hoan toan doc lap. Thoi gian di bang cai LAU HON trong hai truc chu khong
+//  phai cong don. Muon quay lai kieu chay lan luot thi dat DB_TrayTable.SyncMove
+//  := FALSE. Rieng truc LAT phai ve giua truoc khi di chuyen - dieu do khong
+//  bao gio duoc bo, mam dang nghieng ma chay ngang la dap vao thanh ro.
+//
+//  Cac lenh Motion Control (MC_*) duoc goi TAP TRUNG O CUOI than khoi, sau CASE.
+//  Vi vay bit .Done cua chung ve o vong quet ke tiep - logic chuyen buoc da tinh den.
+// ============================================================================
+
+FUNCTION_BLOCK "FB_XY_Tray"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.5
+
+   VAR_INPUT
+      Enable : Bool;      // cap dien cho truc (MC_Power)
+      CmdCode : Int;      // ma lenh da duoc kiem tra hop le, 0 = khong co lenh
+      CmdPulse : Bool;    // TRUE dung 1 vong quet khi co lenh moi
+      CmdSeq : Word;      // so thu tu lenh do Orange Pi cap
+      SelPos : Int;       // so khay 1..20
+      TargetX : Real;     // vi tri ngang tu do / toa do khay khi ghi bang
+      TargetY : Real;     // goc lat tu do / chieu lat khi ghi bang
+      TargetZ : Real;     // do cao tu do / do cao khay khi ghi bang
+      JogXp : Bool;       // jog tay - giu la chay
+      JogXn : Bool;
+      JogYp : Bool;
+      JogYn : Bool;
+      JogZp : Bool;
+      JogZn : Bool;
+      // Nut DUNG tren tu dien, tiep diem THUONG DONG:
+      //   TRUE  = nut dang nha, cho chay
+      //   FALSE = dang nhan, HOAC dut day
+      // De mac dinh TRUE de mo phong khong can dau gi van chay duoc.
+      StopOK : Bool := TRUE;
+   END_VAR
+
+   VAR_OUTPUT
+      Ready : Bool;       // san sang nhan lenh moi
+      Busy : Bool;        // dang chay
+      Done : Bool;        // vua hoan thanh 1 chu trinh
+      Homed : Bool;       // ca 3 truc da co goc toa do
+      Error : Bool;
+      ErrorID : Word;
+      StepNo : Int;       // buoc hien tai
+      ActX : Real;        // vi tri thuc ngang (mm)
+      ActY : Real;        // goc lat thuc (do)
+      ActZ : Real;        // do cao thuc (mm)
+      AckSeq : Word;      // echo CmdSeq khi da nhan lenh
+      DoneSeq : Word;     // CmdSeq cua lenh da chay xong
+      Result : Word;      // 0 chua chay / 1 dang chay / 2 xong / 3 bi dung / 4 loi / 5 lenh sai
+      CurSlot : Int;      // khay dang chay toi (0 = toa do tu do)
+   END_VAR
+
+   VAR_IN_OUT
+      AxisX : TO_PositioningAxis;   // ngang qua lai
+      AxisY : TO_PositioningAxis;   // lat trai phai
+      AxisZ : TO_PositioningAxis;   // len xuong
+      Tbl : "typTray";              // truyen vao "DB_TrayTable"
+   END_VAR
+
+   VAR
+      // --- instance cac lenh Motion Control ---
+      mcPowerX : MC_Power;
+      mcPowerY : MC_Power;
+      mcPowerZ : MC_Power;
+      mcResetX : MC_Reset;
+      mcResetY : MC_Reset;
+      mcResetZ : MC_Reset;
+      mcHomeX : MC_Home;
+      mcHomeY : MC_Home;
+      mcHomeZ : MC_Home;
+      mcAbsX : MC_MoveAbsolute;
+      mcAbsY : MC_MoveAbsolute;
+      mcAbsZ : MC_MoveAbsolute;
+      mcJogX : MC_MoveJog;
+      mcJogY : MC_MoveJog;
+      mcJogZ : MC_MoveJog;
+      mcSeekZ : MC_MoveJog;   // chay Z am di tim cam bien home (lenh 15)
+      mcSeekX : MC_MoveJog;   // chay X am di tim cam bien home (lenh 16)
+      mcHaltX : MC_Halt;
+      mcHaltY : MC_Halt;
+      mcHaltZ : MC_Halt;
+      // --- dong ho ---
+      tDwell : TON_TIME;      // dung yen tai khay truoc khi lat
+      tTilt : TON_TIME;       // giu o goc lat
+      tJog : TON_TIME;        // gioi han thoi gian jog lien tuc (an toan mang)
+      tReset : TON_TIME;      // gioi han thoi gian cho MC_Reset
+      // --- bien noi bo ---
+      exX : Bool;             // co lenh chay tuyet doi tung truc
+      exY : Bool;
+      exZ : Bool;
+      exHome : Bool;
+      exHomeZ : Bool;         // home RIENG truc Z (lenh 15) - X/Y dung yen
+      exHomeX : Bool;         // home RIENG truc X (lenh 16)
+      zSeek : Bool;           // dang chay Z am di tim cam bien home
+      xSeek : Bool;           // dang chay X am di tim cam bien home
+      exReset : Bool;         // dang chay MC_Reset tren ca 3 truc
+      // Ca bang toa do lan cac bien o day deu la Real - dung kieu ma lenh
+      // Motion Control cua S7-1200 nhan. Nho vay khong con mot dong doi kieu
+      // nao trong khoi nay ngoai may cho doc ActualPosition tu Technology
+      // Object (rieng no la LReal).
+      // StepNo va Error la TRANG THAI, khong phai ngo ra. May trang thai doc
+      // lai chung moi vong quet, ma doc thang ngo ra thi TIA canh bao
+      // "might not be initialized". Giu ban that o day, cuoi khoi chep ra ngoai.
+      step : Int;             // buoc hien tai cua may trang thai
+      err : Bool;             // co loi dang treo
+
+      posX : Real;            // dich den dang gui cho MC_MoveAbsolute
+      posY : Real;
+      posZ : Real;
+      velXnow : Real;         // toc do dang dung cho lan chay nay
+      velYnow : Real;
+      velZnow : Real;
+      tgtX : Real;            // dich cua chu trinh
+      tgtY : Real;
+      tgtZ : Real;
+      tiltOut : Real;         // goc lat dich
+      tiltDir : Int;          // +1 phai / -1 trai / 0 khong lat
+      tiltN : Int;            // so lan lat con lai
+      doTilt : Bool;          // chu trinh nay co lat khong
+      doReturn : Bool;        // chu trinh nay co ve cho khong
+      curSeq : Word;          // CmdSeq cua chu trinh dang chay
+      jogOK : Bool;
+      // TU LAY GOC KHI KHOI DONG. Bien tinh KHONG retain: moi lan CPU vao RUN
+      // (bat dien hoac STOP->RUN) deu ve TRUE -> tu chay Home dung 1 lan. Truc
+      // PTO mat goc toa do moi lan cup dien nen bat buoc phai lay lai goc that.
+      autoHomeReq : Bool := TRUE;
+   END_VAR
+
+   VAR_TEMP
+      stopNow : Bool;
+   END_VAR
+
+BEGIN
+
+   // =========================================================================
+   // 1. CAP DIEN CHO TRUC - phai goi moi vong quet
+   // =========================================================================
+   #mcPowerX(Axis := #AxisX, Enable := #Enable, StopMode := 0);
+   #mcPowerY(Axis := #AxisY, Enable := #Enable, StopMode := 0);
+   #mcPowerZ(Axis := #AxisZ, Enable := #Enable, StopMode := 0);
+
+   // =========================================================================
+   // 2. DOC TRANG THAI TRUC
+   // =========================================================================
+   #ActX := LREAL_TO_REAL(#AxisX.ActualPosition);
+   #ActY := LREAL_TO_REAL(#AxisY.ActualPosition);
+   #ActZ := LREAL_TO_REAL(#AxisZ.ActualPosition);
+   #Homed := #AxisX.StatusBits.HomingDone AND #AxisY.StatusBits.HomingDone
+             AND #AxisZ.StatusBits.HomingDone;
+   #Busy := (#step <> 0) AND (#step < 900);
+   #Ready := #mcPowerX.Status AND #mcPowerY.Status AND #mcPowerZ.Status AND #Homed
+             AND (#step = 0) AND NOT #err;
+
+   // Toc do mac dinh cho vong quet nay.
+   //
+   // TRUC Y LAY TiltVel CHU KHONG PHAI VelY. Truc nay chi lam mot viec duy nhat
+   // la lat, nen chi co mot toc do co y nghia. Truoc day mac dinh la VelY, ma
+   // VelY thi KHONG AI GHI: server day xuong VelX, VelZ, TiltAngle, TiltVel,
+   // Dwell, TiltHold, TiltCount - khong co VelY. No nam nguyen o gia tri khoi
+   // tao 200 do/s. Buoc 170/180 tu ghi de nen khong lo, nhung buoc 195 (dua
+   // truc lat ve giua truoc khi di chuyen) va buoc 300 (lenh lat tu do) thi
+   // khong - chung goi MC_MoveAbsolute voi 200 do/s.
+   // Ra may that, 200 do/s vuot tran cua truc -> ErrorID 16#8402 "gia tri
+   // Velocity khong hop le", may vao buoc 900 va khong nhuc nhich.
+   #velXnow := #Tbl.VelX;
+   #velYnow := #Tbl.TiltVel;
+   #velZnow := #Tbl.VelZ;
+
+   #stopNow := FALSE;
+
+   // =========================================================================
+   // 3. NHAN LENH TU ORANGE PI / HMI
+   // =========================================================================
+   IF #CmdPulse THEN
+      #AckSeq := #CmdSeq;   // bao cho client biet lenh da toi noi
+
+      CASE #CmdCode OF
+
+         1:  // ---- CHAY TU DONG: toi khay -> dung -> lat -> ve cho ----
+            IF #Ready AND (#SelPos >= 1) AND (#SelPos <= #Tbl.SlotCount) THEN
+               #curSeq := #CmdSeq;
+               #Result := 1;
+               #Done := FALSE;
+               #CurSlot := #SelPos;
+               #tgtX := #Tbl.Pos[#SelPos].X;
+               #tgtZ := #Tbl.Pos[#SelPos].Z;
+               #tiltDir := #Tbl.Pos[#SelPos].Dir;
+               #doTilt := TRUE;
+               #doReturn := TRUE;
+               #step := 10;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         2:  // ---- chay Home lay goc toa do ca 3 truc ----
+            IF (#step = 0) AND NOT #err
+               AND #mcPowerX.Status AND #mcPowerY.Status AND #mcPowerZ.Status THEN
+               #curSeq := #CmdSeq;
+               #Result := 1;
+               #Done := FALSE;
+               #step := 5;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         15: // ---- home RIENG truc Z (X/Y dung yen - an toan de test) ----
+            IF (#step = 0) AND NOT #err AND #mcPowerZ.Status THEN
+               #curSeq := #CmdSeq;
+               #Result := 1;
+               #Done := FALSE;
+               #step := 6;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         16: // ---- home RIENG truc X (Y/Z dung yen - de test rieng X) ----
+            IF (#step = 0) AND NOT #err AND #mcPowerX.Status THEN
+               #curSeq := #CmdSeq;
+               #Result := 1;
+               #Done := FALSE;
+               #step := 7;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         3:  // ---- dung khan ----
+            #stopNow := TRUE;
+
+         4:  // ---- xoa loi ----
+            //     Khong xoa ngay tai day. MC_Reset can vai vong quet moi xoa xong
+            //     loi o Technology Object, nen phai co trang thai cho han hoi.
+            IF #err OR (#step >= 900) THEN
+               #curSeq := #CmdSeq;
+               #Result := 1;
+               #exReset := TRUE;
+               #step := 950;
+            ELSE
+               #Result := 2;              // dang khong co loi, coi nhu xong
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         5:  // ---- Teach: luu vi tri hien tai vao khay SelPos ----
+            IF (#step = 0) AND (#SelPos >= 1) AND (#SelPos <= #Tbl.SlotCount) THEN
+               // ActualPosition cua Technology Object la LReal, bang toa do la
+               // Real - phai cat ro rang, khong TIA canh bao mat do chinh xac.
+               #Tbl.Pos[#SelPos].X := LREAL_TO_REAL(#AxisX.ActualPosition);
+               #Tbl.Pos[#SelPos].Z := LREAL_TO_REAL(#AxisZ.ActualPosition);
+               #Result := 2;
+               #DoneSeq := #CmdSeq;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         6:  // ---- chi DI toi khay, dung tai do ----
+            IF #Ready AND (#SelPos >= 1) AND (#SelPos <= #Tbl.SlotCount) THEN
+               #curSeq := #CmdSeq;
+               #Result := 1;
+               #Done := FALSE;
+               #CurSlot := #SelPos;
+               #tgtX := #Tbl.Pos[#SelPos].X;
+               #tgtZ := #Tbl.Pos[#SelPos].Z;
+               #doTilt := FALSE;
+               #doReturn := FALSE;
+               #step := 10;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         7:  // ---- chi LAT tai cho, theo chieu cua khay SelPos ----
+            IF #Ready AND (#SelPos >= 1) AND (#SelPos <= #Tbl.SlotCount) THEN
+               #curSeq := #CmdSeq;
+               #Result := 1;
+               #Done := FALSE;
+               #tiltDir := #Tbl.Pos[#SelPos].Dir;
+               #doTilt := TRUE;
+               #doReturn := FALSE;
+               #step := 100;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         8:  // ---- di toi vi tri tu do do Orange Pi tinh ----
+            IF #Ready THEN
+               #curSeq := #CmdSeq;
+               #Result := 1;
+               #Done := FALSE;
+               #CurSlot := 0;
+               #tgtX := #TargetX;
+               #tgtZ := #TargetZ;
+               #doTilt := FALSE;
+               #doReturn := FALSE;
+               #step := 10;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         9:  // ---- ve vi tri cho (di chuyen, khong phai lay goc) ----
+            IF #Ready THEN
+               #curSeq := #CmdSeq;
+               #Result := 1;
+               #Done := FALSE;
+               #doTilt := FALSE;
+               #doReturn := TRUE;
+               #step := 195;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         10: // ---- lat truc Y toi goc tu do (can chinh co cau) ----
+            IF #Ready THEN
+               #curSeq := #CmdSeq;
+               #Result := 1;
+               #Done := FALSE;
+               #tgtY := #TargetY;
+               #step := 300;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         11: // ---- GHI toa do khay tu web (khong chay may) ----
+            //     TargetX = vi tri ngang, TargetZ = do cao,
+            //     dau cua TargetY quyet dinh chieu lat
+            // Chan tren la kich thuoc mang chu khong phai SlotCount: luc dang day
+            // bang xuong, SlotCount cu co the con nho hon bang moi.
+            IF (#step = 0) AND (#SelPos >= 1) AND (#SelPos <= 500) THEN
+               #Tbl.Pos[#SelPos].X := #TargetX;
+               #Tbl.Pos[#SelPos].Z := #TargetZ;
+               IF #TargetY > 0.0 THEN
+                  #Tbl.Pos[#SelPos].Dir := 1;
+               ELSIF #TargetY < 0.0 THEN
+                  #Tbl.Pos[#SelPos].Dir := -1;
+               ELSE
+                  #Tbl.Pos[#SelPos].Dir := 0;
+               END_IF;
+               #Result := 2;
+               #DoneSeq := #CmdSeq;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         14: // ---- GHI mot tham so chay may ----
+            //     SelPos = ma tham so, TargetX = gia tri. Mot lenh lo het moi
+            //     tham so vo huong, khoi phai them ma lenh moi cho tung cai.
+            IF #step = 0 THEN
+               // Toc do PHAI duong. Go nham so 0 tren web thi MC_MoveAbsolute /
+               // MC_MoveJog bao loi ngay lan chay dau va may dung giua chung,
+               // nen chan ngay tu day. Ma 1 2 3 5 9 10 11 deu la toc do;
+               // 4 (goc lat) duoc am, 6 7 8 duoc bang 0.
+               // Dat truoc la 2, nhanh ELSE se ghi de thanh 5 neu ma tham so la.
+               // KHONG duoc doc lai #Result de suy ra ket qua: no la bien tinh,
+               // con giu gia tri cua lenh TRUOC do.
+               #Result := 2;
+               IF ((#SelPos <= 3) OR (#SelPos = 5)
+                   OR (#SelPos = 9) OR (#SelPos = 10) OR (#SelPos = 11))
+                  AND (#TargetX <= 0.0) THEN
+                  #Result := 5;              // toc do 0 hay am -> tu choi (ma 12 duoc = 0)
+               ELSE
+                  CASE #SelPos OF
+                     1:  #Tbl.VelX := #TargetX;        // mm/s
+                     2:  #Tbl.VelY := #TargetX;        // do/s
+                     3:  #Tbl.VelZ := #TargetX;        // mm/s
+                     4:  #Tbl.TiltAngle := #TargetX;   // do
+                     5:  #Tbl.TiltVel := #TargetX;     // do/s
+                     6:  #Tbl.DwellTime := DINT_TO_TIME(REAL_TO_DINT(#TargetX));  // ms
+                     7:  #Tbl.TiltHold := DINT_TO_TIME(REAL_TO_DINT(#TargetX));   // ms
+                     8:  #Tbl.TiltCount := REAL_TO_INT(#TargetX);
+                     9:  #Tbl.JogVelX := #TargetX;
+                     10: #Tbl.JogVelY := #TargetX;
+                     11: #Tbl.JogVelZ := #TargetX;
+                     12: #Tbl.UseAutoHome := (#TargetX > 0.5);  // 1=bat auto-home, 0=tat
+                  ELSE
+                     #Result := 5;              // ma tham so la
+                  END_CASE;
+               END_IF;
+               #DoneSeq := #CmdSeq;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         13: // ---- GHI so ro dang dung (SlotCount) tu web ----
+            //     Bo cuc gian ro do server tinh ra tu hanh trinh va kich thuoc
+            //     ro, nen so luong khong co dinh. SelPos mang so luong do.
+            IF (#step = 0) AND (#SelPos >= 1) AND (#SelPos <= 500) THEN
+               #Tbl.SlotCount := #SelPos;
+               #Result := 2;
+               #DoneSeq := #CmdSeq;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+         12: // ---- GHI vi tri cho (park) tu web ----
+            //     Vi tri cho khong nhat thiet o goc toa do. May nay dat o giua gian
+            //     khay, cho lap cam bien nhan biet vat.
+            IF #step = 0 THEN
+               #Tbl.HomeX := #TargetX;
+               #Tbl.HomeY := #TargetY;
+               #Tbl.HomeZ := #TargetZ;
+               #Result := 2;
+               #DoneSeq := #CmdSeq;
+            ELSE
+               #Result := 5;
+               #DoneSeq := #CmdSeq;
+            END_IF;
+
+      ELSE  // ma lenh khong ton tai
+         #Result := 5;
+         #DoneSeq := #CmdSeq;
+      END_CASE;
+   END_IF;
+
+   // =========================================================================
+   // 4. XOA LOI - chi goi lenh, viec ha co lam o buoc 950
+   // =========================================================================
+   #mcResetX(Axis := #AxisX, Execute := #exReset);
+   #mcResetY(Axis := #AxisY, Execute := #exReset);
+   #mcResetZ(Axis := #AxisZ, Execute := #exReset);
+   #tReset(IN := #exReset, PT := T#5s);
+
+   // =========================================================================
+   // 5. DUNG KHAN - huy moi lenh dang chay
+   // =========================================================================
+   // Nut cung tren tu co quyen ngang lenh tu web. Bat theo MUC chu khong theo
+   // suon: con giu nut thi con dung, nha ra moi chay tiep duoc.
+   IF NOT #StopOK THEN
+      #stopNow := TRUE;
+   END_IF;
+
+   IF #stopNow THEN
+      IF #step <> 0 THEN
+         #Result := 3;            // bao cho client biet chu trinh bi cat ngang
+         #DoneSeq := #curSeq;
+      END_IF;
+      #exX := FALSE;
+      #exY := FALSE;
+      #exZ := FALSE;
+      #exHome := FALSE;
+      #exHomeZ := FALSE;
+      #exHomeX := FALSE;
+      #zSeek := FALSE;
+      #xSeek := FALSE;
+      // Phai ha ca co Reset. Neu bam Dung dung luc dang o buoc 950 ma khong ha,
+      // MC_Reset giu Execute = TRUE mai mai: lan xoa loi sau khong con suon len
+      // nao de kich, may treo o buoc 950 va khong bao gio xoa duoc loi.
+      #exReset := FALSE;
+      #step := 0;
+   END_IF;
+   #mcHaltX(Axis := #AxisX, Execute := #stopNow);
+   #mcHaltY(Axis := #AxisY, Execute := #stopNow);
+   #mcHaltZ(Axis := #AxisZ, Execute := #stopNow);
+
+   // =========================================================================
+   // 6. JOG TAY - chi cho phep khi dang dung o buoc 0
+   //    Co gioi han thoi gian: giu bit jog qua JogMaxTime thi tu cat.
+   // =========================================================================
+   #tJog(IN := (#JogXp OR #JogXn OR #JogYp OR #JogYn OR #JogZp OR #JogZn),
+         PT := #Tbl.JogMaxTime);
+
+   // Con giu nut Dung (hoac dut day) thi cam luon jog. Thieu dieu kien nay thi
+   // buoc 5 ep #step := 0, ma jog chi doi #step = 0 - hoa ra bam Dung xong van
+   // jog chay duoc, MC_MoveJog con doat quyen cua MC_Halt.
+   // Jog chi dung khi NHA nut (bit jog ve 0) hoac bam Dung/loi. BO gioi han 5s
+   // (khong con AND NOT #tJog.Q) - giu nut la chay mai, tha ra moi dung.
+   #jogOK := (#step = 0) AND #mcPowerX.Status AND #mcPowerY.Status AND #mcPowerZ.Status
+             AND NOT #err
+             AND #StopOK AND NOT #stopNow;
+
+   #mcJogX(Axis := #AxisX,
+           JogForward := #JogXp AND #jogOK,
+           JogBackward := #JogXn AND #jogOK,
+           Velocity := #Tbl.JogVelX);
+   #mcJogY(Axis := #AxisY,
+           JogForward := #JogYp AND #jogOK,
+           JogBackward := #JogYn AND #jogOK,
+           Velocity := #Tbl.JogVelY);
+   #mcJogZ(Axis := #AxisZ,
+           JogForward := #JogZp AND #jogOK,
+           JogBackward := #JogZn AND #jogOK,
+           Velocity := #Tbl.JogVelZ);
+
+   // =========================================================================
+   // 6b. TU LAY GOC KHI KHOI DONG
+   // =========================================================================
+   // Cho tới khi truc DA CO DIEN (MC_Power.Status - mat vai vong quet sau Enable),
+   // dang ranh (step 0), khong loi, va CHUA lay goc -> tu kich Home dung 1 lan.
+   // Vi moi lenh di chuyen deu doi #Ready (= da Homed), may khong the chay bay
+   // bien truoc khi co goc. Che do that: truc chi co dien khi Orange Pi bat
+   // AXES_ENABLE, nen auto-home chay ngay sau khi master noi va cap dien.
+   IF #autoHomeReq AND #Tbl.UseAutoHome AND (#step = 0) AND NOT #err AND NOT #Homed
+      AND #mcPowerX.Status AND #mcPowerY.Status AND #mcPowerZ.Status THEN
+      #autoHomeReq := FALSE;
+      #curSeq := #CmdSeq;
+      #Result := 1;
+      #Done := FALSE;
+      #step := 5;
+   END_IF;
+
+   // =========================================================================
+   // 7. MAY TRANG THAI
+   // =========================================================================
+   CASE #step OF
+
+      0:  // ------- Cho lenh -------
+         #exX := FALSE;
+         #exY := FALSE;
+         #exZ := FALSE;
+
+      5:  // ------- HOME: X va Z deu do CAM BIEN, Y gan tai cho -------
+         //  KHONG con home bang so co dinh. X chay am toi cham %I0.0, Z chay am toi
+         //  cham %I0.1 - chay SONG SONG, moi truc cham cam bien cua no thi dung.
+         //  Ca hai dung roi -> lay goc ca 3 (Mode 0): X = tai cam bien X, Z = tai
+         //  cam bien Z, Y = tai cho. (cam bien NPN Dark-ON: cham vau -> len 1)
+         #xSeek := NOT %I0.0;                 // X chua cham cam bien X -> jog am
+         #zSeek := NOT %I0.1;                 // Z chua cham cam bien Z -> jog am
+         IF (NOT #xSeek) AND (NOT #zSeek)
+            AND (NOT #mcSeekX.Busy) AND (NOT #mcSeekZ.Busy) THEN   // ca 2 dung han
+            #exHome := TRUE;                  // gan goc ca 3 truc (Mode 0)
+            IF #mcHomeX.Done AND #mcHomeY.Done AND #mcHomeZ.Done THEN
+               #exHome := FALSE;
+               #Result := 2;
+               #DoneSeq := #curSeq;
+               #Done := TRUE;
+               #step := 0;
+            END_IF;
+         END_IF;
+
+      6:  // ------- Home RIENG Z: chay AM toi khi CHAM cam bien %I0.1 thi DUNG -------
+         //  Khong dung active homing (dao lai tim canh). Chay thang xuong, cam bien
+         //  len 1 la nha jog cho dung han, roi lay cho do lam goc (Mode 0). Khong
+         //  bao gio chay nguoc len.
+         //  %I0.1 = cam bien home truc Z (NPN Dark-ON: cham vau -> len 1).
+         IF NOT %I0.1 THEN
+            #zSeek := TRUE;                   // chua cham -> jog am cham (JogVelZ)
+         ELSE
+            #zSeek := FALSE;                  // CHAM -> nha jog
+            IF NOT #mcSeekZ.Busy THEN         // doi truc dung han
+               #exHomeZ := TRUE;              // lay cho dang dung lam goc = HomeZ
+               IF #mcHomeZ.Done THEN
+                  #exHomeZ := FALSE;
+                  #Result := 2;
+                  #DoneSeq := #curSeq;
+                  #Done := TRUE;
+                  #step := 0;
+               END_IF;
+            END_IF;
+         END_IF;
+
+      7:  // ------- Home RIENG X: chay AM toi khi CHAM cam bien %I0.0 thi DUNG -------
+         //  Giong buoc 6 nhung cho truc X. Chay xuong/qua ben am, cham cam bien
+         //  thi dung han, lay cho do lam goc = HomeX (Mode 0). Khong dao nguoc.
+         IF NOT %I0.0 THEN
+            #xSeek := TRUE;                   // chua cham -> jog am cham (JogVelX)
+         ELSE
+            #xSeek := FALSE;                  // CHAM -> nha jog
+            IF NOT #mcSeekX.Busy THEN         // doi truc dung han
+               #exHomeX := TRUE;              // lay cho dang dung lam goc = HomeX
+               IF #mcHomeX.Done THEN
+                  #exHomeX := FALSE;
+                  #Result := 2;
+                  #DoneSeq := #curSeq;
+                  #Done := TRUE;
+                  #step := 0;
+               END_IF;
+            END_IF;
+         END_IF;
+
+      10: // ------- Di toi khay: ngang + len xuong -------
+         //  SyncMove = TRUE: kich ca hai truc trong cung mot vong quet roi cho
+         //  ca hai bao xong. Hai truc nay chay tren hai kenh xung roi nhau nen
+         //  hoan toan doc lap - thoi gian di bang cai LAU HON trong hai cai,
+         //  chu khong phai cong don nhu truoc.
+         //  Duong di la duong cheo, khong phai duong thang noi hai diem: moi
+         //  truc chay theo toc do rieng cua no, xong truoc thi dung cho. S7-1200
+         //  khong noi suy quy dao duoc, va o may nay cung khong can - can den
+         //  dung toa do la du, di kieu gi khong quan trong.
+         #posX := #tgtX;
+         #posZ := #tgtZ;
+         #exX := TRUE;
+         #exZ := #Tbl.SyncMove;
+         IF #Tbl.SyncMove THEN
+            IF #mcAbsX.Done AND #mcAbsZ.Done THEN
+               #exX := FALSE;
+               #exZ := FALSE;
+               #step := 30;
+            END_IF;
+         ELSE
+            IF #mcAbsX.Done THEN
+               #exX := FALSE;
+               #step := 20;
+            END_IF;
+         END_IF;
+
+      20: // ------- Chay len xuong (chi dung khi SyncMove = FALSE) -------
+         #posZ := #tgtZ;
+         #exZ := TRUE;
+         IF #mcAbsZ.Done THEN
+            #exZ := FALSE;
+            #step := 30;
+         END_IF;
+
+      30: // ------- Dung yen cho het rung (DwellTime) -------
+         IF #tDwell.Q THEN
+            IF #doTilt THEN
+               #step := 100;
+            ELSIF #doReturn THEN
+               #step := 195;
+            ELSE
+               #step := 220;
+            END_IF;
+         END_IF;
+
+      // =====================================================================
+      //  100..190  BUOC LAT - lat ve dung ben cua khay (Dir = +1 phai / -1 trai)
+      // =====================================================================
+
+      100: // ------- Chuan bi lat -------
+         IF (#Tbl.TiltCount <= 0) OR (#tiltDir = 0) THEN
+            #step := 190;                  // khong lat, bo qua
+         ELSE
+            #tiltN := #Tbl.TiltCount;
+            #tiltOut := #Tbl.HomeY + INT_TO_REAL(#tiltDir) * #Tbl.TiltAngle;
+            #step := 170;
+         END_IF;
+
+      170: // ------- Lat ra dung ben -------
+         #posY := #tiltOut;
+         #velYnow := #Tbl.TiltVel;
+         #exY := TRUE;
+         IF #mcAbsY.Done THEN
+            #exY := FALSE;
+            #step := 175;
+         END_IF;
+
+      175: // ------- Giu o goc lat (TiltHold) -------
+         IF #tTilt.Q THEN
+            #step := 180;
+         END_IF;
+
+      180: // ------- Tra truc lat ve giua -------
+         #posY := #Tbl.HomeY;
+         #velYnow := #Tbl.TiltVel;
+         #exY := TRUE;
+         IF #mcAbsY.Done THEN
+            #exY := FALSE;
+            #tiltN := #tiltN - 1;
+            IF #tiltN > 0 THEN
+               #step := 170;               // lat tiep
+            ELSE
+               #step := 190;
+            END_IF;
+         END_IF;
+
+      190: // ------- Lat xong -------
+         IF #doReturn THEN
+            #step := 195;
+         ELSE
+            #step := 220;
+         END_IF;
+
+      // =====================================================================
+      //  195..220  VE VI TRI CHO
+      // =====================================================================
+
+      195: // ------- Dua truc lat ve giua truoc khi di chuyen -------
+         #posY := #Tbl.HomeY;
+         #exY := TRUE;
+         IF #mcAbsY.Done THEN
+            #exY := FALSE;
+            #step := 200;
+         END_IF;
+
+      200: // ------- Ve cho: len xuong + ngang -------
+         //  Buoc 195 da dua truc lat ve giua roi, gio mam khong con thoi ra hai
+         //  ben nua nen chay cheo an toan.
+         #posZ := #Tbl.HomeZ;
+         #posX := #Tbl.HomeX;
+         #exZ := TRUE;
+         #exX := #Tbl.SyncMove;
+         IF #Tbl.SyncMove THEN
+            IF #mcAbsZ.Done AND #mcAbsX.Done THEN
+               #exZ := FALSE;
+               #exX := FALSE;
+               #step := 220;
+            END_IF;
+         ELSE
+            IF #mcAbsZ.Done THEN
+               #exZ := FALSE;
+               #step := 210;
+            END_IF;
+         END_IF;
+
+      210: // ------- Chay ngang ve cho (chi dung khi SyncMove = FALSE) -------
+         #posX := #Tbl.HomeX;
+         #exX := TRUE;
+         IF #mcAbsX.Done THEN
+            #exX := FALSE;
+            #step := 220;
+         END_IF;
+
+      220: // ------- Xong 1 chu trinh, bao ket qua cho Orange Pi -------
+         #Done := TRUE;
+         #Result := 2;
+         #DoneSeq := #curSeq;
+         #step := 0;
+
+      300: // ------- Lat truc Y toi goc tu do (lenh 10) -------
+         #posY := #tgtY;
+         #exY := TRUE;
+         IF #mcAbsY.Done THEN
+            #exY := FALSE;
+            #step := 220;
+         END_IF;
+
+      950: // ------- Dang xoa loi: cho MC_Reset xong o ca 3 truc -------
+         IF #mcResetX.Done AND #mcResetY.Done AND #mcResetZ.Done THEN
+            #exReset := FALSE;
+            #err := FALSE;
+            #ErrorID := W#16#0;
+            #Result := 2;
+            #DoneSeq := #curSeq;
+            #step := 0;
+         ELSIF #mcResetX.Error OR #mcResetY.Error OR #mcResetZ.Error OR #tReset.Q THEN
+            #exReset := FALSE;          // xoa khong duoc, quay lai trang thai loi
+            #Result := 4;
+            #DoneSeq := #curSeq;
+            #step := 900;
+         END_IF;
+
+      900: // ------- Loi: dung tai cho, cho lenh Reset -------
+         #exX := FALSE;
+         #exY := FALSE;
+         #exZ := FALSE;
+         #exHome := FALSE;
+
+   ELSE  // buoc la -> ve 0 cho an toan
+      #step := 0;
+   END_CASE;
+
+   // --- cac dong ho, goi sau CASE ---
+   #tDwell(IN := (#step = 30), PT := #Tbl.DwellTime);
+   #tTilt(IN := (#step = 175), PT := #Tbl.TiltHold);
+
+   // =========================================================================
+   // 8. BAT LOI TU CAC LENH MOTION CONTROL
+   // =========================================================================
+   // Trong luc dang chay MC_Reset (buoc 950) thi bo qua - neu khong, bit loi cu
+   // chua kip tat se lap tuc dat lai StepNo := 900 va lenh xoa loi khong bao gio an.
+   IF (#step <> 950)
+      AND (#mcPowerX.Error OR #mcPowerY.Error OR #mcPowerZ.Error
+        OR #mcHomeX.Error OR #mcHomeY.Error OR #mcHomeZ.Error
+        OR #mcAbsX.Error OR #mcAbsY.Error OR #mcAbsZ.Error
+        OR #mcJogX.Error OR #mcJogY.Error OR #mcJogZ.Error) THEN
+
+      IF NOT #err THEN   // chi chot ma loi DAU TIEN, khong de loi sau de len
+         #err := TRUE;
+         IF #mcPowerX.Error THEN
+            #ErrorID := #mcPowerX.ErrorID;
+         ELSIF #mcPowerY.Error THEN
+            #ErrorID := #mcPowerY.ErrorID;
+         ELSIF #mcPowerZ.Error THEN
+            #ErrorID := #mcPowerZ.ErrorID;
+         ELSIF #mcHomeX.Error THEN
+            #ErrorID := #mcHomeX.ErrorID;
+         ELSIF #mcHomeY.Error THEN
+            #ErrorID := #mcHomeY.ErrorID;
+         ELSIF #mcHomeZ.Error THEN
+            #ErrorID := #mcHomeZ.ErrorID;
+         ELSIF #mcAbsX.Error THEN
+            #ErrorID := #mcAbsX.ErrorID;
+         ELSIF #mcAbsY.Error THEN
+            #ErrorID := #mcAbsY.ErrorID;
+         ELSIF #mcAbsZ.Error THEN
+            #ErrorID := #mcAbsZ.ErrorID;
+         ELSIF #mcJogX.Error THEN
+            #ErrorID := #mcJogX.ErrorID;
+         ELSIF #mcJogY.Error THEN
+            #ErrorID := #mcJogY.ErrorID;
+         ELSE
+            #ErrorID := #mcJogZ.ErrorID;
+         END_IF;
+
+         IF #step <> 0 THEN     // dang chay do lenh nao thi bao truot lenh do
+            #Result := 4;
+            #DoneSeq := #curSeq;
+         END_IF;
+      END_IF;
+      #step := 900;
+   END_IF;
+
+   // =========================================================================
+   // 9. GOI CAC LENH DI CHUYEN (dat cuoi cung - xem ghi chu dau file)
+   // =========================================================================
+   // Position = toa do gan cho DIEM LAY GOC.
+   //   HomeMode 0: diem lay goc chinh la cho may dang dung. May nay luon dung o
+   //               VI TRI CHO khi lay goc, nen gan thang toa do vi tri cho vao day.
+   //               Nho vay "lay goc" xong thi "ve cho cho" khong phai di dau ca.
+   //   HomeMode 3: diem lay goc la cong tac Home. Khi lap cong tac roi thi doi
+   //               HomeX/Y/Z thanh toa do that cua cong tac.
+   // Truc X cung home kieu "chay am, cham cam bien thi DUNG" (buoc 5/7). Khi da
+   // dung tai cam bien, MC_Home Mode 0 lay cho do lam goc = HomeX.
+   #mcHomeX(Axis := #AxisX, Execute := #exHome OR #exHomeX, Position := #Tbl.HomeX,
+            Mode := 0);
+   #mcHomeY(Axis := #AxisY, Execute := #exHome, Position := #Tbl.HomeY,
+            Mode := #Tbl.HomeMode);
+   // Truc Z home kieu "chay xuong, cham cam bien thi DUNG" (buoc 6/7) - khong dung
+   // active homing dao lai. Khi da dung tai cam bien, MC_Home Mode 0 lay CHO DO
+   // lam goc = HomeZ. Nen Mode o day la 0 (gan vi tri hien tai), khong phai 3.
+   #mcHomeZ(Axis := #AxisZ, Execute := #exHome OR #exHomeZ, Position := #Tbl.HomeZ,
+            Mode := 0);
+   // Chay Z am di tim cam bien home (buoc 5/6). Nha (zSeek FALSE) la truc giam toc dung.
+   #mcSeekZ(Axis := #AxisZ, JogForward := FALSE, JogBackward := #zSeek,
+            Velocity := #Tbl.JogVelZ);
+   // Chay X am di tim cam bien home (buoc 5/7).
+   #mcSeekX(Axis := #AxisX, JogForward := FALSE, JogBackward := #xSeek,
+            Velocity := #Tbl.JogVelX);
+
+   #mcAbsX(Axis := #AxisX, Execute := #exX, Position := #posX, Velocity := #velXnow);
+   #mcAbsY(Axis := #AxisY, Execute := #exY, Position := #posY, Velocity := #velYnow);
+   #mcAbsZ(Axis := #AxisZ, Execute := #exZ, Position := #posZ, Velocity := #velZnow);
+
+   // =========================================================================
+   // 9. CHEP TRANG THAI RA NGO RA
+   //    Lam o cuoi cung de gia tri gui ra luon la ket qua cua vong quet nay.
+   // =========================================================================
+   #StepNo := #step;
+   #Error := #err;
+
+END_FUNCTION_BLOCK

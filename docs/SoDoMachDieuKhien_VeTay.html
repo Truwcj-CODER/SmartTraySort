@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <title>Bản vẽ mạch điện chuẩn</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; text-align: center; margin: 0; padding: 40px; }
+        .container { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: inline-block; }
+        svg { background: #fff; }
+        .wire { stroke: #000; stroke-width: 2.5; fill: none; }
+        .red-wire { stroke: #d32f2f; stroke-width: 2.5; fill: none; }
+        .black-wire { stroke: #212121; stroke-width: 2.5; fill: none; }
+        .blue-wire { stroke: #1976d2; stroke-width: 2.5; fill: none; }
+        .label { font-size: 15px; fill: #333; font-family: monospace; font-weight: bold; }
+        .sub-label { font-size: 13px; fill: #666; font-family: monospace; }
+        .title { font-size: 18px; font-weight: bold; }
+        .dot { fill: #000; }
+        .component { stroke: #000; stroke-width: 2.5; fill: #fff; }
+        .terminal { fill: #fff; stroke: #000; stroke-width: 2.5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Sơ Đồ Mạch Điện Thực Tế - Tủ Điều Khiển</h2>
+        <svg width="850" height="550">
+            <!-- +24V Line (Top) -->
+            <line x1="50" y1="50" x2="800" y2="50" class="red-wire" />
+            <text x="50" y="35" class="title" fill="#d32f2f">+24V DC (Dây Đỏ)</text>
+            <circle cx="50" cy="50" r="4" fill="#d32f2f" />
+            
+            <!-- 0V Line (Bottom) -->
+            <line x1="50" y1="480" x2="800" y2="480" class="black-wire" />
+            <text x="50" y="510" class="title" fill="#212121">0V DC (Dây Đen)</text>
+            <circle cx="50" cy="480" r="4" fill="#212121" />
+
+            <!-- ============================================== -->
+            <!-- BRANCH 1: E-Stop & START & COIL -->
+            <!-- ============================================== -->
+            <line x1="250" y1="50" x2="250" y2="100" class="red-wire" />
+            <circle cx="250" cy="50" r="5" class="dot" />
+            
+            <!-- E-Stop (NC) -->
+            <circle cx="250" cy="100" r="4" class="terminal" />
+            <circle cx="250" cy="150" r="4" class="terminal" />
+            <line x1="250" y1="100" x2="230" y2="150" class="wire" />
+            <line x1="230" y1="150" x2="250" y2="150" class="wire" />
+            <!-- Mushroom head -->
+            <path d="M 230 110 Q 240 100 250 110" fill="none" stroke="#d32f2f" stroke-width="3"/>
+            <text x="270" y="120" class="label">S0 (E-Stop)</text>
+            <text x="270" y="140" class="sub-label">Tiếp điểm NC</text>
+
+            <line x1="250" y1="150" x2="250" y2="220" class="red-wire" />
+            
+            <!-- START (NO) -->
+            <circle cx="250" cy="220" r="4" class="terminal" />
+            <circle cx="250" cy="270" r="4" class="terminal" />
+            <line x1="250" y1="220" x2="230" y2="260" class="wire" />
+            <!-- Button head -->
+            <line x1="235" y1="230" x2="245" y2="230" class="wire" />
+            <line x1="240" y1="225" x2="240" y2="230" class="wire" />
+            <text x="270" y="240" class="label">S1 (START)</text>
+            <text x="270" y="260" class="sub-label">Tiếp điểm NO</text>
+
+            <line x1="250" y1="270" x2="250" y2="340" class="red-wire" />
+            
+            <!-- Relay Coil -->
+            <rect x="230" y="340" width="40" height="60" class="component" />
+            <line x1="230" y1="340" x2="270" y2="400" class="wire" />
+            <line x1="270" y1="340" x2="230" y2="400" class="wire" />
+            <text x="280" y="365" class="label">Relay K1</text>
+            <text x="280" y="385" class="sub-label">Cuộn hút (14, 13)</text>
+            <text x="200" y="355" class="label" fill="#d32f2f">14 (+)</text>
+            <text x="200" y="395" class="label" fill="#212121">13 (-)</text>
+
+            <line x1="250" y1="400" x2="250" y2="480" class="black-wire" />
+            <circle cx="250" cy="480" r="5" class="dot" />
+
+            <!-- ============================================== -->
+            <!-- BRANCH 2: Self-Hold (K1 NO) -->
+            <!-- ============================================== -->
+            <line x1="250" y1="185" x2="100" y2="185" class="red-wire" />
+            <circle cx="250" cy="185" r="5" class="dot" />
+            <line x1="100" y1="185" x2="100" y2="220" class="red-wire" />
+            
+            <!-- K1 NO (9, 5) -->
+            <circle cx="100" cy="220" r="4" class="terminal" />
+            <circle cx="100" cy="270" r="4" class="terminal" />
+            <line x1="100" y1="220" x2="80" y2="260" class="wire" />
+            <text x="115" y="240" class="label">K1 (Mạch Tự Giữ)</text>
+            <text x="115" y="260" class="sub-label">Tiếp điểm NO (Chân 9, 5)</text>
+            <text x="75" y="225" class="label">9</text>
+            <text x="75" y="275" class="label">5</text>
+
+            <line x1="100" y1="270" x2="100" y2="305" class="red-wire" />
+            <line x1="100" y1="305" x2="250" y2="305" class="red-wire" />
+            <circle cx="250" cy="305" r="5" class="dot" />
+
+            <!-- ============================================== -->
+            <!-- BRANCH 3: Start LED (Green) -->
+            <!-- ============================================== -->
+            <line x1="250" y1="305" x2="420" y2="305" class="red-wire" />
+            <line x1="420" y1="305" x2="420" y2="340" class="red-wire" />
+            
+            <!-- Green Lamp -->
+            <circle cx="420" cy="370" r="30" class="component" />
+            <line x1="398" y1="348" x2="442" y2="392" class="wire" />
+            <line x1="442" y1="348" x2="398" y2="392" class="wire" />
+            <text x="460" y="365" class="label">Đèn S1 (Xanh)</text>
+            <text x="460" y="385" class="sub-label">Sáng khi máy chạy</text>
+            <text x="420" y="330" fill="#d32f2f" font-weight="bold">(+)</text>
+            
+            <line x1="420" y1="400" x2="420" y2="480" class="black-wire" />
+            <circle cx="420" cy="480" r="5" class="dot" />
+            <text x="420" y="415" fill="#212121" font-weight="bold">(-)</text>
+
+            <!-- ============================================== -->
+            <!-- BRANCH 4: Red LED & K1 NC -->
+            <!-- ============================================== -->
+            <line x1="570" y1="50" x2="570" y2="120" class="red-wire" />
+            <circle cx="570" cy="50" r="5" class="dot" />
+            
+            <!-- Red Lamp -->
+            <circle cx="570" cy="150" r="30" class="component" />
+            <line x1="548" y1="128" x2="592" y2="172" class="wire" />
+            <line x1="592" y1="128" x2="548" y2="172" class="wire" />
+            <text x="610" y="145" class="label">Đèn H1 (Đỏ)</text>
+            <text x="610" y="165" class="sub-label">Sáng khi máy dừng</text>
+            <text x="570" y="110" fill="#d32f2f" font-weight="bold">X1</text>
+            
+            <line x1="570" y1="180" x2="570" y2="240" class="red-wire" />
+            <text x="570" y="195" fill="#d32f2f" font-weight="bold">X2</text>
+            
+            <!-- K1 NC (4, 12) -->
+            <circle cx="570" cy="240" r="4" class="terminal" />
+            <circle cx="570" cy="290" r="4" class="terminal" />
+            <line x1="570" y1="240" x2="550" y2="290" class="wire" />
+            <line x1="550" y1="290" x2="570" y2="290" class="wire" />
+            <text x="590" y="260" class="label">K1 (Tiếp điểm Đèn)</text>
+            <text x="590" y="280" class="sub-label">Tiếp điểm NC (Chân 4, 12)</text>
+            <text x="545" y="245" class="label">4</text>
+            <text x="535" y="295" class="label">12</text>
+            
+            <line x1="570" y1="290" x2="570" y2="480" class="black-wire" />
+            <circle cx="570" cy="480" r="5" class="dot" />
+
+            <!-- ============================================== -->
+            <!-- BRANCH 5: PLC Signal -->
+            <!-- ============================================== -->
+            <line x1="750" y1="480" x2="750" y2="380" class="black-wire" />
+            <circle cx="750" cy="480" r="5" class="dot" />
+            
+            <!-- K1 NO (8, 12) -->
+            <circle cx="750" cy="380" r="4" class="terminal" />
+            <circle cx="750" cy="330" r="4" class="terminal" />
+            <line x1="750" y1="380" x2="730" y2="340" class="wire" />
+            <text x="765" y="350" class="label">K1 (Báo PLC)</text>
+            <text x="765" y="370" class="sub-label">NO (Chân 8, 12)</text>
+            <text x="725" y="385" class="label">12</text>
+            <text x="735" y="335" class="label">8</text>
+            
+            <line x1="750" y1="330" x2="750" y2="280" class="blue-wire" />
+            
+            <!-- PLC Terminal -->
+            <rect x="710" y="230" width="80" height="50" class="component" />
+            <text x="750" y="260" class="label" fill="#1976d2" text-anchor="middle">DI a.7</text>
+            <text x="750" y="215" class="label" fill="#1976d2" text-anchor="middle">Vào PLC (Dây Xanh)</text>
+        </svg>
+    </div>
+</body>
+</html>

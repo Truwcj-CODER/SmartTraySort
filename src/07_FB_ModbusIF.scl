@@ -1,0 +1,76 @@
+// ============================================================================
+//  07_FB_ModbusIF.scl  -  Modbus TCP Server cho app ngoai
+//
+//  Anh xa ca "DB_Interface" thanh holding register HR0..HR23.
+//  BAN DO DAY DU nam trong 01_Types.scl (phan mo ta "typIF") - do la ban duy
+//  nhat dung, dung chep lai o day nua keo hai noi lech nhau:
+//     HR0 Command | HR1 SelPos | HR2 CtrlBits | HR3 CmdSeq
+//     HR4-5 TargetX | HR6-7 TargetY | HR8-9 TargetZ        <- client ghi
+//     HR10 StatusBits | HR11 StepNo | HR12 ErrorID | HR13 AckSeq
+//     HR14 DoneSeq | HR15 Result | HR16-17 ActX | HR18-19 ActY
+//     HR20-21 ActZ | HR22 CurSlot | HR23 du phong          <- client doc
+//  (Modbus Poll danh so tu 40001 -> HR0 = 40001)
+//
+//  KHI CHAY PLCSIM: dat DB_TrayTable.UseModbus := FALSE.
+//  PLCSIM khong mo duoc cong TCP that nen MB_SERVER se bao loi va lam nhieu
+//  qua trinh test logic. Chi bat TRUE khi da download xuong CPU that.
+//
+//  InterfaceId: la Hardware identifier cua cong PROFINET, thuong = 64.
+//  Kiem tra dung gia tri o: Project tree -> PLC tags -> Show all tags
+//  -> tab System constants -> tim "Local~PROFINET_interface_1".
+// ============================================================================
+
+FUNCTION_BLOCK "FB_ModbusIF"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+
+   VAR_INPUT
+      Enable : Bool;         // noi toi DB_TrayTable.UseModbus
+      InterfaceId : HW_ANY := 64;
+      LocalPort : UInt := 502;
+   END_VAR
+
+   VAR_OUTPUT
+      NDR : Bool;            // app vua ghi du lieu xuong
+      DR : Bool;             // app vua doc du lieu len
+      Error : Bool;
+      Status : Word;
+   END_VAR
+
+   VAR_IN_OUT
+      HoldReg : Variant;     // truyen vao "DB_Interface"
+   END_VAR
+
+   VAR
+      srv : MB_SERVER;
+      conn : TCON_IP_v4;
+      initDone : Bool;
+   END_VAR
+
+BEGIN
+
+   // --- nap tham so ket noi 1 lan duy nhat ---
+   IF NOT #initDone THEN
+      #conn.InterfaceId := #InterfaceId;
+      #conn.ID := W#16#1;                  // so hieu ket noi, khong trung voi khoi khac
+      #conn.ConnectionType := B#16#0B;     // 16#0B = 11 = TCP
+      #conn.ActiveEstablished := FALSE;    // FALSE = PLC lam Server (thu dong cho)
+      #conn.RemoteAddress.ADDR[1] := B#16#0;  // 0.0.0.0 = chap nhan moi client
+      #conn.RemoteAddress.ADDR[2] := B#16#0;
+      #conn.RemoteAddress.ADDR[3] := B#16#0;
+      #conn.RemoteAddress.ADDR[4] := B#16#0;
+      #conn.RemotePort := 0;
+      #conn.LocalPort := #LocalPort;
+      #initDone := TRUE;
+   END_IF;
+
+   // --- Modbus TCP server ---
+   #srv(DISCONNECT := NOT #Enable,
+        MB_HOLD_REG := #HoldReg,
+        CONNECT := #conn,
+        NDR => #NDR,
+        DR => #DR,
+        ERROR => #Error,
+        STATUS => #Status);
+
+END_FUNCTION_BLOCK

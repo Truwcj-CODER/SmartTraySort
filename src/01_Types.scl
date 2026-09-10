@@ -1,0 +1,197 @@
+// ============================================================================
+//  01_Types.scl  -  Khai bao kieu du lieu (UDT)
+//  Project: SmartTraySort  |  S7-1200 CPU 1214C DC/DC/DC + TIA Portal V17
+//
+//  BA TRUC:
+//     Axis_X  ngang qua lai       driver HBS86H      (hybrid servo vong kin)
+//     Axis_Y  lat trai phai +-60  driver ASD556R-LW  (buoc 2 pha)
+//     Axis_Z  len xuong           driver 3DH583      (buoc 3 pha)
+//
+//  Luoi 20 khay nam tren mat phang dung: X la cot trai/phai, Z la hang cao/thap.
+//  Truc Y khong tham gia dinh vi khay, no chi lat khay ra hai ben.
+//
+//  Kien truc: Orange Pi giu UI + luu do, PLC chi nhan lenh va thuc thi chuyen dong
+//  Import: External source files -> Generate blocks from source
+//  LUU Y: file .scl chi dung ky tu ASCII (khong dau) de TIA khong loi encoding
+// ============================================================================
+
+// Vi sao Real chu khong phai LReal:
+//   1. Lenh Motion Control cua S7-1200 (MC_MoveAbsolute, MC_Home, MC_MoveJog)
+//      nhan Real. Khai LReal thi den luc dung van phai cat bot - do chinh xac
+//      thua bi vut di ngay tai cho, chi to them mot dong doi kieu.
+//   2. Real cho ~7 chu so co nghia: o hanh trinh 1250 mm la phan giai duoi
+//      0.001 mm, min hon buoc co khi (640 xung/mm ~ 0.0016 mm/xung) nhieu lan.
+//   3. Quan trong nhat: mang 500 o x 12 byte = 6 000 byte, LOT vao 10 240 byte
+//      bo nho luu khi mat dien cua S7-1200. Neu de LReal thi mot o ton 24 byte,
+//      ca mang 12 000 byte - vuot tran, khong tick Retain duoc, va PLC se quen
+//      sach bang toa do moi lan mat dien.
+TYPE "typSlot"
+VERSION : 0.4
+   STRUCT
+      X : Real;      // vi tri ngang cua khay (mm)
+      Z : Real;      // do cao cua khay (mm)
+      Dir : Int;      // chieu lat cua khay nay: +1 = lat sang PHAI (+Y)
+                      //                         -1 = lat sang TRAI (-Y)
+                      //                          0 = khong lat
+   END_STRUCT;
+
+END_TYPE
+
+// ----------------------------------------------------------------------------
+// Bang du lieu may: 20 khay + tham so van hanh.
+// Tat ca deu chinh duoc luc dang chay, khong can sua chuong trinh.
+// ----------------------------------------------------------------------------
+TYPE "typTray"
+VERSION : 0.5
+   STRUCT
+      // So ro KHONG co dinh. Server tinh ra tu hanh trinh X, Z va kich thuoc
+      // mot cai ro, roi ghi ca bang lan so luong xuong day. Mang khai rong san
+      // toi 500 cho; SlotCount cho biet bao nhieu cho dang thuc su dung.
+      Pos : ARRAY[1..500] OF "typSlot";
+      SlotCount : Int := 20;           // so ro dang dung, 1..500
+
+      // --- VI TRI CHO = TRAM NAP ---
+      // Nam o DAU hanh trinh truc X, ngoai ria gian khay - cho nguoi dung dung quet
+      // ma va dat vat len khay. Cung la diem lay goc toa do, nen X = 0.
+      HomeX : Real := 0.0;            // tram nap, dau truc X (mm)
+      HomeY : Real := 0.0;            // goc giua cua truc lat (do)
+      HomeZ : Real := 0.0;            // do cao cho cua truc len xuong (mm)
+
+      // --- toc do chay tu dong ---
+      VelX : Real := 80.0;            // mm/s
+      // KHONG CON DUNG. Truc lat lay toc do tu TiltVel - xem ghi chu dau than
+      // FB_XY_Tray. Giu lai o day de khong pha bo cuc UDT va de ma tham so 2
+      // cua lenh 14 van hop le. Ghi vao no khong co tac dung gi.
+      VelY : Real := 200.0;           // do/s  - KHONG DUNG, xem TiltVel
+      VelZ : Real := 60.0;            // mm/s  - truc len xuong, cham hon vi chong trong luc
+
+      // --- toc do jog tay ---
+      JogVelX : Real := 10.0;
+      JogVelY : Real := 20.0;
+      JogVelZ : Real := 10.0;
+      JogMaxTime : Time := T#5s;       // AN TOAN: gioi han thoi gian jog lien tuc.
+                                       // Orange Pi giu bit jog roi rot mang thi truc
+                                       // tu dung sau khoang thoi gian nay.
+
+      DwellTime : Time := T#1s;        // dung yen tai khay cho het rung truoc khi lat
+
+      // --- tham so buoc LAT (truc Y) ---
+      TiltAngle : Real := 60.0;       // goc lat (do): sang phai = +60, sang trai = -60
+      TiltHold : Time := T#1s;         // thoi gian giu o goc lat truoc khi tra ve
+      TiltCount : Int := 1;            // so lan lat. Dat 0 = bo qua buoc lat
+      TiltVel : Real := 200.0;        // toc do lat (do/s)
+
+      // --- 2 tham so de chuyen giua MO PHONG va MAY THAT ---
+      HomeMode : Int := 0;             // 0 = set thang vi tri hien tai = 0 (dung cho PLCSIM,
+                                       //     khong can cong tac Home)
+                                       // 3 = active homing, chay tim cong tac Home (may that)
+      UseModbus : Bool := TRUE;        // TRUE  = bat MB_SERVER, dung cho CPU that
+                                       // FALSE = tat di khi quay lai chay PLCSIM
+                                       //         (PLCSIM khong mo duoc cong TCP that)
+      // --- duong di ---
+      // TRUE  = chay ngang va len xuong CUNG LUC. Thoi gian di = cai lau hon
+      //         trong hai truc, thay vi cong don. Duong di thanh duong cheo.
+      // FALSE = chay xong ngang roi moi len xuong (cach cu). Bat lai neu phat
+      //         hien mam quet trung cai gi tren duong cheo.
+      // Truc LAT luon phai o giua truoc khi di chuyen - viec do khong doi.
+      SyncMove : Bool := TRUE;
+
+      // TRUE  = TU HOME khi bat dien / vao RUN (lo cup dien bat lai thi tu ve HOME).
+      // FALSE = KHONG tu home; may giu nguyen vi tri, phai bam HOME moi ve.
+      // Server day xuong tu nut bat/tat "AUTO HOME" tren web (SET_PARAM ma 12).
+      UseAutoHome : Bool := TRUE;
+
+      UseStopBtn : Bool := FALSE;      // FALSE = bo qua nut DUNG cung o %I0.0
+                                       //         (mo phong / chua dau nut nao)
+                                       // TRUE  = doc that %I0.0. Nut phai la tiep
+                                       //         diem THUONG DONG: nha = co dien =
+                                       //         cho chay, nhan hay dut day = dung.
+                                       //         Bat TRUE ma chua dau day thi may
+                                       //         nam im - dung, do la dung y.
+   END_STRUCT;
+
+END_TYPE
+
+// ----------------------------------------------------------------------------
+// Vung giao tiep voi Orange Pi (Modbus TCP) va HMI phu.
+// Layout byte co dinh -> DB tao tu UDT nay PHAI bo "Optimized block access".
+//
+//  === ORANGE PI GHI XUONG (ghi tron khoi HR0..HR9 bang 1 lenh FC16) ===
+//   Byte  0..1   Command      HR0    ma lenh, xem bang duoi
+//   Byte  2..3   SelPos       HR1    so khay 1..SlotCount (lenh 13: la so luong)
+//   Byte  4..5   CtrlBits     HR2    bit0 X+ / bit1 X- / bit2 Y+ / bit3 Y-
+//                                    bit4 Z+ / bit5 Z- / bit8 CapDienTruc
+//   Byte  6..7   CmdSeq       HR3    so thu tu lenh, client tu tang moi lan gui lenh moi
+//   Byte  8..11  TargetX      HR4-5  vi tri ngang tu do (lenh 8) / toa do khay (lenh 11)
+//   Byte 12..15  TargetY      HR6-7  goc lat tu do (lenh 10) / chieu lat (lenh 11)
+//   Byte 16..19  TargetZ      HR8-9  do cao tu do (lenh 8) / do cao khay (lenh 11)
+//
+//  === PLC TRA VE (Orange Pi chi doc) ===
+//   Byte 20..21  StatusBits   HR10   bit0 Ready bit1 Busy bit2 Done bit3 Homed bit4 Error
+//   Byte 22..23  StepNo       HR11   buoc hien tai cua may trang thai
+//   Byte 24..25  ErrorID      HR12   ma loi Motion Control
+//   Byte 26..27  AckSeq       HR13   echo CmdSeq khi PLC DA NHAN lenh
+//   Byte 28..29  DoneSeq      HR14   CmdSeq cua lenh DA CHAY XONG
+//   Byte 30..31  Result       HR15   ket qua lenh, xem bang duoi
+//   Byte 32..35  ActX         HR16-17 vi tri thuc ngang (mm)
+//   Byte 36..39  ActY         HR18-19 goc lat thuc (do)
+//   Byte 40..43  ActZ         HR20-21 do cao thuc (mm)
+//   Byte 44..45  CurSlot      HR22   khay dang chay toi
+//   Byte 46..47  (du phong)   HR23
+//
+//  === BANG MA LENH (Command) ===
+//    0 = khong co lenh (PLC tu xoa ve 0 sau khi nhan)
+//    1 = CHAY TU DONG: toi khay SelPos -> dung -> LAT dung ben -> ve cho
+//    2 = chay Home (lay goc toa do ca 3 truc)
+//    3 = dung khan
+//    4 = xoa loi
+//    5 = Teach: luu vi tri hien tai vao khay SelPos
+//    6 = chi DI toi khay SelPos roi dung tai do (khong lat, khong ve)
+//    7 = chi LAT tai cho, theo chieu cua khay SelPos
+//    8 = di toi vi tri tu do TargetX / TargetZ
+//    9 = ve vi tri cho (di chuyen, khong phai chay lay goc)
+//   10 = lat truc Y toi goc TargetY (dung de can chinh co cau lat)
+//   11 = GHI toa do khay SelPos = (TargetX, TargetZ), chieu lat lay tu dau cua TargetY
+//        -> de Orange Pi day ca bang toa do xuong sau khi cau hinh tren web
+//   12 = GHI vi tri cho = (TargetX, TargetY, TargetZ)
+//   13 = GHI so ro dang dung: SlotCount := SelPos
+//   14 = GHI mot tham so chay may: SelPos = ma tham so, TargetX = gia tri
+//        1 VelX   2 VelY   3 VelZ   4 TiltAngle   5 TiltVel
+//        6 DwellTime(ms)   7 TiltHold(ms)   8 TiltCount
+//        9 JogVelX  10 JogVelY  11 JogVelZ
+//        -> vi tri cho khong o goc toa do ma o giua gian khay, noi lap cam bien
+//
+//  === BANG KET QUA (Result) ===
+//    0 = chua chay lenh nao
+//    1 = dang chay
+//    2 = hoan thanh tot
+//    3 = bi dung giua chung (lenh Stop)
+//    4 = loi
+//    5 = lenh hoac tham so khong hop le / may chua san sang
+// ----------------------------------------------------------------------------
+TYPE "typIF"
+VERSION : 0.3
+   STRUCT
+      // --- Orange Pi ghi xuong ---
+      Command : Word;
+      SelPos : Int;
+      CtrlBits : Word;
+      CmdSeq : Word;
+      TargetX : Real;
+      TargetY : Real;
+      TargetZ : Real;
+      // --- PLC tra ve ---
+      StatusBits : Word;
+      StepNo : Int;
+      ErrorID : Word;
+      AckSeq : Word;
+      DoneSeq : Word;
+      Result : Word;
+      ActX : Real;
+      ActY : Real;
+      ActZ : Real;
+      CurSlot : Int;
+      Spare1 : Int;
+   END_STRUCT;
+
+END_TYPE

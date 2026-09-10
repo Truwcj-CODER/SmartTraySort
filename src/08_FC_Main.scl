@@ -1,0 +1,168 @@
+// ============================================================================
+//  08_FC_Main.scl  -  Instance DB + khoi goi tong
+//
+//  Trong OB1 (Main) chi can keo tha 1 lenh goi duy nhat:
+//        "FC_Main"(HwSafeOK := TRUE)          <- khi mo phong
+//        "FC_Main"(HwSafeOK := "I_EstopOK")   <- khi ra may that
+//
+//  Nut DUNG cung nam o %I0.0 va DA duoc doc san trong khoi nay - OB1 khong phai
+//  sua gi. Cong tac cua no la CONG TAC CHUYEN MACH: bat/tat bang
+//        "DB_TrayTable".UseStopBtn
+//     FALSE (mac dinh) : bo qua %I0.0, may chay nhu cu. Dung khi mo phong hoac
+//                        khi chua dau nut nao vao.
+//     TRUE             : doc that. Nut phai la tiep diem THUONG DONG - nha nut
+//                        thi %I0.0 = 1 (cho chay), nhan nut hoac dut day thi
+//                        %I0.0 = 0 va may dung ngay.
+//  Bat TRUE ma quen dau day thi may khong nhuc nhich - do la dung, khong phai loi.
+//
+//  Khong sinh de len OB1 co san de tranh mat code cu cua ban.
+//
+//  DIEU KIEN: 3 Technology Object phai duoc tao truoc va dat ten dung la
+//             "Axis_X" (ngang), "Axis_Y" (lat trai phai), "Axis_Z" (len xuong).
+//             Sai ten la bao loi khi bien dich.
+// ============================================================================
+
+DATA_BLOCK "DB_XY_Tray"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.2
+"FB_XY_Tray"
+
+BEGIN
+END_DATA_BLOCK
+
+
+DATA_BLOCK "DB_ModbusIF"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.2
+"FB_ModbusIF"
+
+BEGIN
+END_DATA_BLOCK
+
+
+FUNCTION "FC_Main" : Void
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.3
+
+   VAR_INPUT
+      HwSafeOK : Bool;   // dieu kien an toan phan cung.
+                         // Mo phong: dat TRUE.
+                         // May that: noi vao tiep diem E-Stop OK / relay an toan.
+   END_VAR
+
+   VAR_TEMP
+      cmdCode : Int;
+      cmdPulse : Bool;
+      cmdSeq : Word;
+      selPos : Int;
+      targetX : Real;
+      targetY : Real;
+      targetZ : Real;
+      axesEn : Bool;
+      jogXp : Bool;
+      jogXn : Bool;
+      jogYp : Bool;
+      jogYn : Bool;
+      jogZp : Bool;
+      jogZn : Bool;
+      enableAxes : Bool;
+      stopOK : Bool;
+   END_VAR
+
+BEGIN
+
+   // =========================================================================
+   // 1. Doc lenh tu Orange Pi / HMI
+   // =========================================================================
+   "FC_CmdDecode"(CmdCode => #cmdCode,
+                  CmdPulse => #cmdPulse,
+                  CmdSeq => #cmdSeq,
+                  SelPos => #selPos,
+                  TargetX => #targetX,
+                  TargetY => #targetY,
+                  TargetZ => #targetZ,
+                  AxesEnable => #axesEn,
+                  JogXp => #jogXp,
+                  JogXn => #jogXn,
+                  JogYp => #jogYp,
+                  JogYn => #jogYn,
+                  JogZp => #jogZp,
+                  JogZn => #jogZn,
+                  IF_DB := "DB_Interface");
+
+   // =========================================================================
+   // 2. Dieu kien cap dien cho truc
+    //    - Luon phai co dieu kien an toan phan cung.
+    //    - Khi chay THAT (UseModbus = TRUE): Orange Pi phai chu dong bat bit8
+    //      cua CtrlBits (gia tri 256) thi truc moi co dien. Master mat ket noi
+    //      hay chua san sang thi truc khong tu nhien chay duoc.
+    //    - Khi MO PHONG (UseModbus = FALSE): bo qua dieu kien tren cho de test.
+   // =========================================================================
+   #enableAxes := #HwSafeOK AND (#axesEn OR NOT "DB_TrayTable".UseModbus);
+
+   // =========================================================================
+   // 3. May trang thai dieu khien truc
+   // =========================================================================
+   // Nut DUNG cung doc thang tai day, khong bat OB1 phai sua.
+   //   UseStopBtn = FALSE -> ve phai luon TRUE -> StopOK = TRUE -> chay binh thuong.
+   //   UseStopBtn = TRUE  -> StopOK bam theo %I0.0 (tiep diem thuong dong).
+   #stopOK := %I0.0 OR NOT "DB_TrayTable".UseStopBtn;
+
+   "DB_XY_Tray"(Enable := #enableAxes,
+                StopOK := #stopOK,
+                CmdCode := #cmdCode,
+                CmdPulse := #cmdPulse,
+                CmdSeq := #cmdSeq,
+                SelPos := #selPos,
+                TargetX := #targetX,
+                TargetY := #targetY,
+                TargetZ := #targetZ,
+                JogXp := #jogXp,
+                JogXn := #jogXn,
+                JogYp := #jogYp,
+                JogYn := #jogYn,
+                JogZp := #jogZp,
+                JogZn := #jogZn,
+                AxisX := "Axis_X",
+                AxisY := "Axis_Y",
+                AxisZ := "Axis_Z",
+                Tbl := "DB_TrayTable");
+
+   // =========================================================================
+   // 4. Tra trang thai ve Orange Pi / HMI
+   // =========================================================================
+   "FC_StatusPack"(Ready := "DB_XY_Tray".Ready,
+                   Busy := "DB_XY_Tray".Busy,
+                   Done := "DB_XY_Tray".Done,
+                   Homed := "DB_XY_Tray".Homed,
+                   Error := "DB_XY_Tray".Error,
+                   ErrorID := "DB_XY_Tray".ErrorID,
+                   StepNo := "DB_XY_Tray".StepNo,
+                   ActX := "DB_XY_Tray".ActX,
+                   ActY := "DB_XY_Tray".ActY,
+                   ActZ := "DB_XY_Tray".ActZ,
+                   AckSeq := "DB_XY_Tray".AckSeq,
+                   DoneSeq := "DB_XY_Tray".DoneSeq,
+                   Result := "DB_XY_Tray".Result,
+                   CurSlot := "DB_XY_Tray".CurSlot,
+                   IF_DB := "DB_Interface");
+
+   // =========================================================================
+   // 5. Modbus TCP server cho Orange Pi
+   //    Tu dong tat khi DB_TrayTable.UseModbus = FALSE (che do mo phong)
+   // =========================================================================
+   "DB_ModbusIF"(Enable := "DB_TrayTable".UseModbus,
+                 InterfaceId := 64,
+                 LocalPort := 502,
+                 HoldReg := "DB_Interface");
+
+   // =========================================================================
+   // 6. TEST CAM BIEN HOME  (TAM THOI - xoa khi da lam homing that trong TO)
+   // =========================================================================
+   // Cam bien EE-SX951 (NPN, ngo Dark-ON = day Trang) noi vao %I0.3, chan chung
+   // 1M cua cum ngo vao noi +24V. Co/vau vao khe -> %I0.3 = 1 -> %Q1.1 = 1 ->
+   // den bao sang. Chi de xac nhan PLC doc duoc cam bien, chua dieu khien gi.
+   //   Doi chan: sua %I0.3 thanh %I1.0 (X_HOME) hay %I0.6 (Y_HOME) de test truc khac.
+   %Q1.1 := %I0.3;
+
+END_FUNCTION

@@ -1,0 +1,85 @@
+// ============================================================================
+//  02_DB_TrayTable.scl  -  Bang toa do ro + tham so may
+//  SINH TU CONG THUC, dung sua tay.
+//  RETAIN: TICK HET, ca mang Pos.
+//  Khoi nay khai bang KIEU ("typTray") nen ca DB la mot the hien cua UDT - TIA
+//  chi dat Retain cho CA KHOI, khong tach duoc tung bien (bo tick mot o la bo
+//  sach, khong phai loi).
+//  Tick het van lot: toa do la Real nen mot o ton 12 byte,
+//  500 o = 6 000 byte, con tran bo nho luu khi mat dien cua S7-1200 la 10 240
+//  byte. (Neu de LReal thi mot o 24 byte, ca mang 12 000 byte - vuot tran,
+//  download se bao "retentive memory exceeded". Do la ly do doi sang Real.)
+//
+//  Nho Retain, BANG TOA DO LA CUA PLC: mat dien bat lai van con nguyen, khong
+//  phu thuoc server co dang chay hay khong. Server chi day bang xuong khi nguoi
+//  dung bam Luu cau hinh, va mot lan nua sau khi vua nap lai khoi trong TIA
+//  (luc do DB tro ve gia tri khoi tao, Retain khong do duoc) - xem resync_plc
+//  trong orangepi/app/main.py.
+//
+//  So ro KHONG co dinh. No la ket qua tinh tu hanh trinh hai truc va kich
+//  thuoc mot cai ro:
+//     dem cot   : buoc chat nhat = ro dai 200 + khe toi thieu 10 = 210 mm
+//                 hanh trinh X 1250 mm  ->  5 cot
+//     dat toa do: trai deu ra cho mep ro cuoi cham dung 1250 mm,
+//                 nen buoc that la 237.5 mm, khe ho that 37.5 mm
+//     buoc hang : thanh ro 60 + nang khay 90 + khe ho 30 = 180 mm
+//                 hanh trinh Z 400 mm  ->  2 hang (chua 20 mm le gioi han)
+//     => 2 hang x 5 cot x 2 ben = 20 ro
+//
+//  Ro to hon -> it ro lai. Truc X dai ra -> them ro. Web tinh lai roi day ca
+//  bang lan SlotCount xuong day, khong phai sua file nay.
+//
+//  Bo cuc: hai day ro nam hai ben duong ray, ban chay o giua. Cung mot vi tri X
+//  phuc vu ca hai ben, chi khac chieu lat.
+//  Danh so chay tu hang TREN xuong, moi hang het ben PHAI roi toi ben TRAI.
+//
+//  Z KHONG phai do cao mieng ro. Ro dat sat hai ben ray nen khay phai dung CAO
+//  HON mieng ro 90 mm thi vat moi roi lot vao trong chu khong dap vao thanh.
+//
+//  Tram nap o X = 5, ngoai ria. Khong dat dung 0: 0 la gioi han phan mem,
+//  do trung vach la PLC bao loi.
+// ============================================================================
+
+DATA_BLOCK "DB_TrayTable"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.6
+"typTray"
+
+BEGIN
+   SlotCount := 20;
+
+   // Vi tri cho = tram nap, dat o X = 5 chu KHONG phai 0. Dung 0 la nam ngay
+   // tren vach gioi han phan mem, chay ve cho la PLC bao loi vi tri. Server
+   // cung day ba so nay xuong bang lenh 12 moi lan luu cau hinh.
+   HomeX := 5.0;
+   HomeY := 0.0;
+   HomeZ := 5.0;
+
+   // --- TREN, day PHAI: mieng ro Z = 280 ---
+   Pos[1].X := 200.0;   Pos[1].Z := 370.0;   Pos[1].Dir := 1;
+   Pos[2].X := 437.5;   Pos[2].Z := 370.0;   Pos[2].Dir := 1;
+   Pos[3].X := 675.0;   Pos[3].Z := 370.0;   Pos[3].Dir := 1;
+   Pos[4].X := 912.5;   Pos[4].Z := 370.0;   Pos[4].Dir := 1;
+   Pos[5].X := 1150.0;   Pos[5].Z := 370.0;   Pos[5].Dir := 1;
+
+   // --- TREN, day TRAI: mieng ro Z = 280 ---
+   Pos[6].X := 200.0;   Pos[6].Z := 370.0;   Pos[6].Dir := -1;
+   Pos[7].X := 437.5;   Pos[7].Z := 370.0;   Pos[7].Dir := -1;
+   Pos[8].X := 675.0;   Pos[8].Z := 370.0;   Pos[8].Dir := -1;
+   Pos[9].X := 912.5;   Pos[9].Z := 370.0;   Pos[9].Dir := -1;
+   Pos[10].X := 1150.0;   Pos[10].Z := 370.0;   Pos[10].Dir := -1;
+
+   // --- hang 2, day PHAI: mieng ro Z = 100 ---
+   Pos[11].X := 200.0;   Pos[11].Z := 190.0;   Pos[11].Dir := 1;
+   Pos[12].X := 437.5;   Pos[12].Z := 190.0;   Pos[12].Dir := 1;
+   Pos[13].X := 675.0;   Pos[13].Z := 190.0;   Pos[13].Dir := 1;
+   Pos[14].X := 912.5;   Pos[14].Z := 190.0;   Pos[14].Dir := 1;
+   Pos[15].X := 1150.0;   Pos[15].Z := 190.0;   Pos[15].Dir := 1;
+
+   // --- hang 2, day TRAI: mieng ro Z = 100 ---
+   Pos[16].X := 200.0;   Pos[16].Z := 190.0;   Pos[16].Dir := -1;
+   Pos[17].X := 437.5;   Pos[17].Z := 190.0;   Pos[17].Dir := -1;
+   Pos[18].X := 675.0;   Pos[18].Z := 190.0;   Pos[18].Dir := -1;
+   Pos[19].X := 912.5;   Pos[19].Z := 190.0;   Pos[19].Dir := -1;
+   Pos[20].X := 1150.0;   Pos[20].Z := 190.0;   Pos[20].Dir := -1;
+END_DATA_BLOCK

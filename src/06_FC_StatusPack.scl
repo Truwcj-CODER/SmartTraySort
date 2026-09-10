@@ -1,0 +1,49 @@
+// ============================================================================
+//  06_FC_StatusPack.scl  -  Dong goi trang thai gui ve Orange Pi / HMI
+//  Goi SAU FB_XY_Tray trong FC_Main de so lieu la cua vong quet hien tai.
+// ============================================================================
+
+FUNCTION "FC_StatusPack" : Void
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.2
+
+   VAR_INPUT
+      Ready : Bool;
+      Busy : Bool;
+      Done : Bool;
+      Homed : Bool;
+      Error : Bool;
+      ErrorID : Word;
+      StepNo : Int;
+      ActX : Real;
+      ActY : Real;
+      ActZ : Real;
+      AckSeq : Word;
+      DoneSeq : Word;
+      Result : Word;
+      CurSlot : Int;
+   END_VAR
+
+   VAR_IN_OUT
+      IF_DB : "typIF";   // truyen vao "DB_Interface"
+   END_VAR
+
+BEGIN
+
+   #IF_DB.StatusBits.%X0 := #Ready;
+   #IF_DB.StatusBits.%X1 := #Busy;
+   #IF_DB.StatusBits.%X2 := #Done;
+   #IF_DB.StatusBits.%X3 := #Homed;
+   #IF_DB.StatusBits.%X4 := #Error;
+
+   #IF_DB.StepNo := #StepNo;
+   #IF_DB.ErrorID := #ErrorID;
+   #IF_DB.AckSeq := #AckSeq;
+   #IF_DB.DoneSeq := #DoneSeq;
+   #IF_DB.Result := #Result;
+   #IF_DB.ActX := #ActX;
+   #IF_DB.ActY := #ActY;
+   #IF_DB.ActZ := #ActZ;
+   #IF_DB.CurSlot := #CurSlot;
+
+END_FUNCTION

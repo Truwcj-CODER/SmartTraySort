@@ -1,0 +1,361 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 1330" width="1560" height="1330">
+<rect width="1560" height="1330" fill="#ffffff"/>
+<rect x="60" y="24" width="1440" height="58" rx="10" fill="#f4f7fb" stroke="#1f3a5f" stroke-width="2"/>
+<text x="84" y="50" font-size="20" fill="#12171f" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">ĐẤU DÂY THỰC TẾ — số cọc đúng như in trên thiết bị</text>
+<text x="84" y="71" font-size="12" fill="#5b6676" text-anchor="start" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">CHiNT NXB-63 C20 2P · Omron S8VK-C12024 · CHiNT NXJ/2Z(D) 24 VDC · CPU 1214C DC/DC/DC · Meanwell LRS-600-48</text>
+<rect x="60" y="108" width="710" height="442" rx="8" fill="#fbfcfd" stroke="#9aa6b5" stroke-width="1"/>
+<text x="84" y="138" font-size="13" fill="#12171f" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">①  NGUỒN — 220 V vào CB1, ra hai cục nguồn có sẵn trong tủ</text>
+<rect x="150" y="240" width="150" height="110" rx="6" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="225.0" y="266" font-size="14" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">CB1</text>
+<text x="225.0" y="283" font-size="10" fill="#5b6676" text-anchor="middle" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">NXB-63</text>
+<text x="225.0" y="300" font-size="9" fill="#5b6676" text-anchor="middle" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">C20 · 2P</text>
+<rect x="185" y="235" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="190" y="260" font-size="11" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">1</text>
+<rect x="260" y="235" width="10" height="10" rx="2" fill="#fff" stroke="#12171f" stroke-width="2"/>
+<text x="265" y="260" font-size="11" fill="#12171f" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">3</text>
+<rect x="185" y="345" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="190" y="339" font-size="11" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">2</text>
+<rect x="260" y="345" width="10" height="10" rx="2" fill="#fff" stroke="#12171f" stroke-width="2"/>
+<text x="265" y="339" font-size="11" fill="#12171f" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">4</text>
+<path d="M 190 192 L 190 235" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 265 192 L 265 235" fill="none" stroke="#12171f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="190" y="182" font-size="12" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">L</text>
+<text x="265" y="182" font-size="12" fill="#12171f" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">N</text>
+<text x="228" y="165" font-size="10" fill="#5b6676" text-anchor="middle" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">220 V từ lưới</text>
+<circle cx="190" cy="214" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="190" y="218" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">1</text>
+<circle cx="265" cy="214" r="11" fill="#ffffff" stroke="#12171f" stroke-width="2"/>
+<text x="265" y="218" font-size="10" fill="#12171f" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">2</text>
+<rect x="470" y="240" width="220" height="92" rx="6" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="580.0" y="266" font-size="13" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">NGUỒN 24 V</text>
+<text x="580.0" y="283" font-size="10" fill="#5b6676" text-anchor="middle" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">Omron S8VK-C12024</text>
+<text x="580.0" y="300" font-size="9" fill="#5b6676" text-anchor="middle" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">cục đen cạnh CB</text>
+<rect x="465" y="257" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="483" y="266" font-size="11" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">L</text>
+<rect x="465" y="283" width="10" height="10" rx="2" fill="#fff" stroke="#12171f" stroke-width="2"/>
+<text x="483" y="292" font-size="11" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">N</text>
+<rect x="465" y="309" width="10" height="10" rx="2" fill="#fff" stroke="#5b6676" stroke-width="2"/>
+<text x="483" y="318" font-size="11" fill="#5b6676" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">PE</text>
+<rect x="685" y="257" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="677" y="266" font-size="11" fill="#d4380d" text-anchor="end" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">+V</text>
+<rect x="685" y="283" width="10" height="10" rx="2" fill="#fff" stroke="#12171f" stroke-width="2"/>
+<text x="677" y="292" font-size="11" fill="#12171f" text-anchor="end" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">−V</text>
+<rect x="470" y="400" width="220" height="92" rx="6" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="580.0" y="426" font-size="13" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">NGUỒN 48 V</text>
+<text x="580.0" y="443" font-size="10" fill="#5b6676" text-anchor="middle" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">Meanwell LRS-600-48</text>
+<text x="580.0" y="460" font-size="9" fill="#5b6676" text-anchor="middle" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">cục bạc to · cấp 3 driver</text>
+<rect x="465" y="417" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="483" y="426" font-size="11" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">AC/L</text>
+<rect x="465" y="443" width="10" height="10" rx="2" fill="#fff" stroke="#12171f" stroke-width="2"/>
+<text x="483" y="452" font-size="11" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">AC/N</text>
+<rect x="465" y="469" width="10" height="10" rx="2" fill="#fff" stroke="#5b6676" stroke-width="2"/>
+<text x="483" y="478" font-size="11" fill="#5b6676" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">PE</text>
+<rect x="685" y="417" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="677" y="426" font-size="11" fill="#d4380d" text-anchor="end" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">+V</text>
+<rect x="685" y="443" width="10" height="10" rx="2" fill="#fff" stroke="#12171f" stroke-width="2"/>
+<text x="677" y="452" font-size="11" fill="#12171f" text-anchor="end" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">−V</text>
+<path d="M 190 355 L 190 512 L 390 512 L 390 262 L 465 262" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="390" cy="422" r="5" fill="#d4380d"/>
+<path d="M 390 422 L 465 422" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="390" cy="330" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="390" y="334" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">4</text>
+<circle cx="430" cy="422" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="430" y="426" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">6</text>
+<path d="M 265 355 L 265 532 L 420 532 L 420 288 L 465 288" fill="none" stroke="#12171f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="420" cy="448" r="5" fill="#12171f"/>
+<path d="M 420 448 L 465 448" fill="none" stroke="#12171f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="420" cy="368" r="11" fill="#ffffff" stroke="#12171f" stroke-width="2"/>
+<text x="420" y="372" font-size="10" fill="#12171f" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">5</text>
+<circle cx="442" cy="448" r="11" fill="#ffffff" stroke="#12171f" stroke-width="2"/>
+<text x="442" y="452" font-size="10" fill="#12171f" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">7</text>
+<path d="M 695 258 L 712 258" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="700" y="250" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">→ +24 V</text>
+<text x="700" y="270" font-size="9" fill="#9aa6b5" text-anchor="start" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">dây 10</text>
+<path d="M 695 292 L 712 292" fill="none" stroke="#12171f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="700" y="284" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">→ 0 V</text>
+<text x="700" y="304" font-size="9" fill="#9aa6b5" text-anchor="start" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">dây 11</text>
+<path d="M 695 418 L 712 418" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="700" y="410" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">→ +48 V</text>
+<text x="700" y="430" font-size="9" fill="#9aa6b5" text-anchor="start" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">dây 27</text>
+<path d="M 695 452 L 712 452" fill="none" stroke="#12171f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="700" y="444" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">→ 0 V</text>
+<text x="700" y="464" font-size="9" fill="#9aa6b5" text-anchor="start" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">dây 28</text>
+<text x="610" y="166" font-size="10" fill="#5b6676" text-anchor="middle" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">Cọc PE của cả hai bộ nguồn bắt vào vỏ tủ</text>
+<text x="610" y="181" font-size="10" fill="#5b6676" text-anchor="middle" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">và dây PE của lưới  —  dây 3 · 8 · 9</text>
+<rect x="790" y="108" width="710" height="442" rx="8" fill="#fbfcfd" stroke="#9aa6b5" stroke-width="1"/>
+<text x="814" y="138" font-size="13" fill="#12171f" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">②  CHỐT TỰ GIỮ — E-Stop, nút Start, cuộn K1</text>
+<path d="M 830 190 L 1460 190" fill="none" stroke="#d4380d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="830" y="176" font-size="11" fill="#d4380d" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">thanh +24 V</text>
+<path d="M 830 510 L 1460 510" fill="none" stroke="#12171f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="830" y="534" font-size="11" fill="#12171f" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">thanh 0 V</text>
+<rect x="840" y="240" width="150" height="100" rx="6" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="915.0" y="286" font-size="12" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">S0 · E-STOP</text>
+<text x="915.0" y="303" font-size="9" fill="#5b6676" text-anchor="middle" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">1 tiếp điểm NC</text>
+<rect x="910" y="235" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="915" y="260" font-size="11" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">11</text>
+<rect x="910" y="335" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="915" y="329" font-size="11" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">12</text>
+<path d="M 915 235 L 915 190" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="915" cy="190" r="5" fill="#d4380d"/>
+<circle cx="915" cy="213" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="915" y="217" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">12</text>
+<rect x="1060" y="235" width="170" height="100" rx="6" fill="#fff" stroke="#2f9c52" stroke-width="2"/>
+<text x="1145.0" y="261" font-size="12" fill="#2f9c52" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">S1 · START</text>
+<text x="1145.0" y="278" font-size="9" fill="#5b6676" text-anchor="middle" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">NO + khối đèn</text>
+<rect x="1055" y="260" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="1073" y="269" font-size="11" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">13</text>
+<rect x="1225" y="260" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="1217" y="269" font-size="11" fill="#d4380d" text-anchor="end" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">14</text>
+<rect x="1055" y="305" width="10" height="10" rx="2" fill="#fff" stroke="#12171f" stroke-width="2"/>
+<text x="1073" y="314" font-size="11" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">X2</text>
+<rect x="1225" y="305" width="10" height="10" rx="2" fill="#fff" stroke="#2f9c52" stroke-width="2"/>
+<text x="1217" y="314" font-size="11" fill="#2f9c52" text-anchor="end" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">X1</text>
+<rect x="1290" y="240" width="160" height="160" rx="6" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="1370.0" y="266" font-size="14" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">K1</text>
+<text x="1370.0" y="283" font-size="10" fill="#5b6676" text-anchor="middle" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">NXJ/2Z(D)</text>
+<text x="1370.0" y="300" font-size="9" fill="#5b6676" text-anchor="middle" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">24 VDC</text>
+<rect x="1285" y="270" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="1303" y="279" font-size="11" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">9</text>
+<rect x="1285" y="310" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="1303" y="319" font-size="11" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">5</text>
+<rect x="1340" y="395" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="1345" y="389" font-size="11" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">14</text>
+<rect x="1410" y="395" width="10" height="10" rx="2" fill="#fff" stroke="#12171f" stroke-width="2"/>
+<text x="1415" y="389" font-size="11" fill="#12171f" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">13</text>
+<text x="1370" y="350" font-size="10" fill="#5b6676" text-anchor="middle" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">khối 1</text>
+<text x="1370" y="366" font-size="10" fill="#5b6676" text-anchor="middle" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">cuộn ↓</text>
+<path d="M 915 345 L 915 366 L 1005 366 L 1005 220 L 1270 220 L 1270 275 L 1285 275" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1005" cy="265" r="5" fill="#d4380d"/>
+<path d="M 1005 265 L 1055 265" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1005" cy="320" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="1005" y="324" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">13</text>
+<circle cx="1140" cy="220" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="1140" y="224" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">14</text>
+<path d="M 1235 265 L 1272 265 L 1272 440 L 1345 440 L 1345 405" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1272" cy="380" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="1272" y="384" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">15</text>
+<path d="M 1285 315 L 1283 315 L 1283 462 L 1345 462 L 1345 440" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1345" cy="440" r="5" fill="#d4380d"/>
+<circle cx="1314" cy="462" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="1314" y="466" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">16</text>
+<path d="M 1235 310 L 1252 310 L 1252 265" fill="none" stroke="#2f9c52" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1252" cy="265" r="5" fill="#2f9c52"/>
+<circle cx="1252" cy="290" r="11" fill="#ffffff" stroke="#2f9c52" stroke-width="2"/>
+<text x="1252" y="294" font-size="10" fill="#2f9c52" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">17</text>
+<path d="M 1055 310 L 1025 310 L 1025 510" fill="none" stroke="#12171f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1025" cy="510" r="5" fill="#12171f"/>
+<circle cx="1025" cy="430" r="11" fill="#ffffff" stroke="#12171f" stroke-width="2"/>
+<text x="1025" y="434" font-size="10" fill="#12171f" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">18</text>
+<path d="M 1415 405 L 1415 510" fill="none" stroke="#12171f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1415" cy="510" r="5" fill="#12171f"/>
+<circle cx="1415" cy="462" r="11" fill="#ffffff" stroke="#12171f" stroke-width="2"/>
+<text x="1415" y="466" font-size="10" fill="#12171f" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">19</text>
+<rect x="60" y="578" width="710" height="432" rx="8" fill="#fbfcfd" stroke="#9aa6b5" stroke-width="1"/>
+<text x="84" y="608" font-size="13" fill="#12171f" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">③  ĐÈN ĐỎ và báo trạng thái về PLC — dùng chung khối 2</text>
+<path d="M 100 650 L 740 650" fill="none" stroke="#d4380d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="100" y="636" font-size="11" fill="#d4380d" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">thanh +24 V</text>
+<path d="M 100 960 L 740 960" fill="none" stroke="#12171f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="100" y="984" font-size="11" fill="#12171f" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">thanh 0 V</text>
+<rect x="130" y="700" width="140" height="90" rx="6" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="200.0" y="746" font-size="13" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">H1</text>
+<text x="200.0" y="763" font-size="9" fill="#5b6676" text-anchor="middle" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đèn đỏ Φ22 · 24 VDC</text>
+<rect x="195" y="695" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="200" y="720" font-size="11" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">X1</text>
+<rect x="195" y="785" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="200" y="779" font-size="11" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">X2</text>
+<path d="M 200 695 L 200 650" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="200" cy="650" r="5" fill="#d4380d"/>
+<circle cx="200" cy="672" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="200" y="676" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">20</text>
+<rect x="330" y="700" width="170" height="140" rx="6" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="415.0" y="726" font-size="12" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">K1  khối 2</text>
+<text x="415.0" y="743" font-size="10" fill="#5b6676" text-anchor="middle" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">chân chung 12</text>
+<text x="415.0" y="760" font-size="9" fill="#5b6676" text-anchor="middle" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">xuống 0 V</text>
+<rect x="325" y="725" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="343" y="734" font-size="11" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">4</text>
+<rect x="325" y="770" width="10" height="10" rx="2" fill="#fff" stroke="#12171f" stroke-width="2"/>
+<text x="343" y="779" font-size="11" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">12</text>
+<rect x="495" y="810" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="487" y="819" font-size="11" fill="#d4380d" text-anchor="end" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">8</text>
+<path d="M 200 795 L 200 900 L 300 900 L 300 730 L 325 730" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="300" cy="830" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="300" y="834" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">21</text>
+<path d="M 325 775 L 315 775 L 315 960" fill="none" stroke="#12171f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="315" cy="960" r="5" fill="#12171f"/>
+<circle cx="315" cy="890" r="11" fill="#ffffff" stroke="#12171f" stroke-width="2"/>
+<text x="315" y="894" font-size="10" fill="#12171f" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">22</text>
+<rect x="585" y="700" width="155" height="180" rx="6" fill="#fff" stroke="#1f3a5f" stroke-width="2"/>
+<text x="662.5" y="726" font-size="13" fill="#1f3a5f" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">PLC</text>
+<text x="662.5" y="743" font-size="10" fill="#5b6676" text-anchor="middle" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">CPU 1214C</text>
+<text x="662.5" y="760" font-size="9" fill="#5b6676" text-anchor="middle" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">DC/DC/DC</text>
+<rect x="580" y="710" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="598" y="719" font-size="11" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">L+</text>
+<rect x="580" y="780" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="598" y="789" font-size="11" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">1M</text>
+<rect x="580" y="820" width="10" height="10" rx="2" fill="#fff" stroke="#d4380d" stroke-width="2"/>
+<text x="598" y="829" font-size="11" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">DI a.7</text>
+<rect x="695" y="875" width="10" height="10" rx="2" fill="#fff" stroke="#12171f" stroke-width="2"/>
+<text x="700" y="869" font-size="11" fill="#12171f" text-anchor="middle" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">M</text>
+<path d="M 505 815 L 555 815 L 555 825 L 580 825" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="530" cy="815" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="530" y="819" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">23</text>
+<path d="M 580 715 L 570 715 L 570 650" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="570" cy="650" r="5" fill="#d4380d"/>
+<circle cx="570" cy="686" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="570" y="690" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">24</text>
+<path d="M 700 885 L 700 960" fill="none" stroke="#12171f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="700" cy="960" r="5" fill="#12171f"/>
+<circle cx="700" cy="925" r="11" fill="#ffffff" stroke="#12171f" stroke-width="2"/>
+<text x="700" y="929" font-size="10" fill="#12171f" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">25</text>
+<path d="M 580 785 L 540 785 L 540 650" fill="none" stroke="#d4380d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="540" cy="650" r="5" fill="#d4380d"/>
+<circle cx="540" cy="724" r="11" fill="#ffffff" stroke="#d4380d" stroke-width="2"/>
+<text x="540" y="728" font-size="10" fill="#d4380d" text-anchor="middle" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">26</text>
+<text x="470" y="992" font-size="10" fill="#5b6676" text-anchor="middle" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">1M lên +24 V nên chân vào chỉ ăn khi bị kéo xuống 0 V</text>
+<rect x="790" y="578" width="710" height="672" rx="8" fill="#fbfcfd" stroke="#9aa6b5" stroke-width="1"/>
+<text x="814" y="608" font-size="13" fill="#12171f" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">④  BẢNG ĐẤU DÂY — đấu xong tích từng dòng</text>
+<text x="818" y="638" font-size="10" fill="#9aa6b5" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">#</text>
+<text x="858" y="638" font-size="10" fill="#9aa6b5" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">TỪ</text>
+<text x="1136" y="638" font-size="10" fill="#9aa6b5" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">ĐẾN</text>
+<text x="1390" y="638" font-size="10" fill="#9aa6b5" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">MÀU</text>
+<path d="M 814 648 L 1476 648" fill="none" stroke="#9aa6b5" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="814" y="656" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="670" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">1</text>
+<text x="858" y="670" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">220 V lưới · L</text>
+<text x="1136" y="670" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">CB1 · cọc 1</text>
+<text x="1390" y="670" font-size="10" fill="#12171f" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đen</text>
+<text x="818" y="690" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">2</text>
+<text x="858" y="690" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">220 V lưới · N</text>
+<text x="1136" y="690" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">CB1 · cọc 3</text>
+<text x="1390" y="690" font-size="10" fill="#12171f" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">xanh dương</text>
+<rect x="814" y="696" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="710" font-size="10" fill="#5b6676" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">3</text>
+<text x="858" y="710" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">220 V lưới · PE</text>
+<text x="1136" y="710" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">vỏ tủ / thanh PE</text>
+<text x="1390" y="710" font-size="10" fill="#5b6676" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">vàng-lục</text>
+<text x="818" y="730" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">4</text>
+<text x="858" y="730" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">CB1 · cọc 2</text>
+<text x="1136" y="730" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">NGUỒN 24V · L</text>
+<text x="1390" y="730" font-size="10" fill="#12171f" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đen</text>
+<rect x="814" y="736" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="750" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">5</text>
+<text x="858" y="750" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">CB1 · cọc 4</text>
+<text x="1136" y="750" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">NGUỒN 24V · N</text>
+<text x="1390" y="750" font-size="10" fill="#12171f" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">xanh dương</text>
+<text x="818" y="770" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">6</text>
+<text x="858" y="770" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">CB1 · cọc 2</text>
+<text x="1136" y="770" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">NGUỒN 48V · AC/L</text>
+<text x="1390" y="770" font-size="10" fill="#12171f" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đen</text>
+<rect x="814" y="776" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="790" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">7</text>
+<text x="858" y="790" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">CB1 · cọc 4</text>
+<text x="1136" y="790" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">NGUỒN 48V · AC/N</text>
+<text x="1390" y="790" font-size="10" fill="#12171f" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">xanh dương</text>
+<text x="818" y="810" font-size="10" fill="#5b6676" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">8</text>
+<text x="858" y="810" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">thanh PE</text>
+<text x="1136" y="810" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">NGUỒN 24V · PE</text>
+<text x="1390" y="810" font-size="10" fill="#5b6676" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">vàng-lục</text>
+<rect x="814" y="816" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="830" font-size="10" fill="#5b6676" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">9</text>
+<text x="858" y="830" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">thanh PE</text>
+<text x="1136" y="830" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">NGUỒN 48V · PE</text>
+<text x="1390" y="830" font-size="10" fill="#5b6676" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">vàng-lục</text>
+<text x="818" y="850" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">10</text>
+<text x="858" y="850" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">NGUỒN 24V · +V</text>
+<text x="1136" y="850" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">thanh +24 V</text>
+<text x="1390" y="850" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<rect x="814" y="856" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="870" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">11</text>
+<text x="858" y="870" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">NGUỒN 24V · −V</text>
+<text x="1136" y="870" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">thanh 0 V</text>
+<text x="1390" y="870" font-size="10" fill="#12171f" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đen</text>
+<text x="818" y="890" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">12</text>
+<text x="858" y="890" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">thanh +24 V</text>
+<text x="1136" y="890" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">S0 · cọc 11</text>
+<text x="1390" y="890" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<rect x="814" y="896" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="910" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">13</text>
+<text x="858" y="910" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">S0 · cọc 12</text>
+<text x="1136" y="910" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">S1 · cọc 13</text>
+<text x="1390" y="910" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<text x="818" y="930" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">14</text>
+<text x="858" y="930" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">S0 · cọc 12</text>
+<text x="1136" y="930" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">K1 · chân 9</text>
+<text x="1390" y="930" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<rect x="814" y="936" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="950" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">15</text>
+<text x="858" y="950" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">S1 · cọc 14</text>
+<text x="1136" y="950" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">K1 · chân 14 (+)</text>
+<text x="1390" y="950" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<text x="818" y="970" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">16</text>
+<text x="858" y="970" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">K1 · chân 5</text>
+<text x="1136" y="970" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">K1 · chân 14 (+)</text>
+<text x="1390" y="970" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<rect x="814" y="976" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="990" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">17</text>
+<text x="858" y="990" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">S1 · cọc 14</text>
+<text x="1136" y="990" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">S1 · X1  (cầu tại nút)</text>
+<text x="1390" y="990" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<text x="818" y="1010" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">18</text>
+<text x="858" y="1010" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">S1 · X2</text>
+<text x="1136" y="1010" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">thanh 0 V</text>
+<text x="1390" y="1010" font-size="10" fill="#12171f" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đen</text>
+<rect x="814" y="1016" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="1030" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">19</text>
+<text x="858" y="1030" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">K1 · chân 13</text>
+<text x="1136" y="1030" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">thanh 0 V</text>
+<text x="1390" y="1030" font-size="10" fill="#12171f" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đen</text>
+<text x="818" y="1050" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">20</text>
+<text x="858" y="1050" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">thanh +24 V</text>
+<text x="1136" y="1050" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">H1 · X1</text>
+<text x="1390" y="1050" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<rect x="814" y="1056" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="1070" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">21</text>
+<text x="858" y="1070" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">H1 · X2</text>
+<text x="1136" y="1070" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">K1 · chân 4</text>
+<text x="1390" y="1070" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<text x="818" y="1090" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">22</text>
+<text x="858" y="1090" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">K1 · chân 12</text>
+<text x="1136" y="1090" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">thanh 0 V</text>
+<text x="1390" y="1090" font-size="10" fill="#12171f" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đen</text>
+<rect x="814" y="1096" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="1110" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">23</text>
+<text x="858" y="1110" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">K1 · chân 8</text>
+<text x="1136" y="1110" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">PLC · DI a.7</text>
+<text x="1390" y="1110" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<text x="818" y="1130" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">24</text>
+<text x="858" y="1130" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">thanh +24 V</text>
+<text x="1136" y="1130" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">PLC · L+</text>
+<text x="1390" y="1130" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<rect x="814" y="1136" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="1150" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">25</text>
+<text x="858" y="1150" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">thanh 0 V</text>
+<text x="1136" y="1150" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">PLC · M</text>
+<text x="1390" y="1150" font-size="10" fill="#12171f" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đen</text>
+<text x="818" y="1170" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">26</text>
+<text x="858" y="1170" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">thanh +24 V</text>
+<text x="1136" y="1170" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">PLC · 1M</text>
+<text x="1390" y="1170" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<rect x="814" y="1176" width="662" height="20" rx="3" fill="#f4f7fb" stroke="none" stroke-width="0"/>
+<text x="818" y="1190" font-size="10" fill="#d4380d" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">27</text>
+<text x="858" y="1190" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">NGUỒN 48V · +V</text>
+<text x="1136" y="1190" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">V+ của 3 driver — Phần 1</text>
+<text x="1390" y="1190" font-size="10" fill="#d4380d" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đỏ</text>
+<text x="818" y="1210" font-size="10" fill="#12171f" text-anchor="start" font-weight="700" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">28</text>
+<text x="858" y="1210" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">NGUỒN 48V · −V</text>
+<text x="1136" y="1210" font-size="10" fill="#12171f" text-anchor="start" font-weight="400" font-family="ui-monospace, SFMono-Regular, Consolas, monospace">0 V chung + GND driver</text>
+<text x="1390" y="1210" font-size="10" fill="#12171f" text-anchor="start" font-weight="600" font-family="Segoe UI, system-ui, -apple-system, sans-serif">đen</text>
+<text x="814" y="1238" font-size="10" fill="#5b6676" text-anchor="start" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">Dây điều khiển 0.75 mm², bấm đầu cốt ferrule và lồng số hai đầu đúng cột #.</text>
+<rect x="60" y="1040" width="710" height="250" rx="8" fill="#fff6f3" stroke="#d4380d" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="84" y="1072" font-size="14" fill="#d4380d" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">⚠  ĐỌC TRƯỚC KHI CẤP ĐIỆN</text>
+<text x="84" y="1104" font-size="11" fill="#12171f" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">▸ Cuộn K1 có diode — sai cực là không hút</text>
+<text x="96" y="1121" font-size="10" fill="#5b6676" text-anchor="start" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">Bản (D) có diode chống ngược. Chân 14 là (+), chân 13 xuống 0 V.</text>
+<text x="84" y="1150" font-size="11" fill="#12171f" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">▸ Đối chiếu lại số chân in trên nắp relay</text>
+<text x="96" y="1167" font-size="10" fill="#5b6676" text-anchor="start" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">NXJ/2Z: khối 1 là 9(chung)–5(NO)–1(NC), khối 2 là 12–8(NO)–4(NC).</text>
+<text x="84" y="1196" font-size="11" fill="#12171f" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">▸ Cọc của bộ nguồn: đọc nhãn trên máy</text>
+<text x="96" y="1213" font-size="10" fill="#5b6676" text-anchor="start" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">S8VK-C12024 có OUTPUT ở mặt trên, INPUT ở mặt dưới. Hình này chỉ vẽ tên cọc, không</text>
+<text x="96" y="1227" font-size="10" fill="#5b6676" text-anchor="start" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">vẽ đúng vị trí.</text>
+<text x="84" y="1242" font-size="11" fill="#d4380d" text-anchor="start" font-weight="700" font-family="Segoe UI, system-ui, -apple-system, sans-serif">▸ E-Stop hiện chỉ dừng bằng phần mềm</text>
+<text x="96" y="1259" font-size="10" fill="#5b6676" text-anchor="start" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">Nút chỉ có 1 tiếp điểm NC, K1 chỉ có 2 khối — hết chân, chưa cắt được 48 V. Mua</text>
+<text x="96" y="1273" font-size="10" fill="#5b6676" text-anchor="start" font-weight="400" font-family="Segoe UI, system-ui, -apple-system, sans-serif">thêm 1 khối NC + contactor K2 mới đủ.</text>
+</svg>
