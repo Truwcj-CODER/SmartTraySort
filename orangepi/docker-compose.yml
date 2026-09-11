@@ -1,0 +1,64 @@
+services:
+  db:
+    image: mysql:8
+    container_name: traysort-db
+    restart: unless-stopped
+    command: --default-time-zone=+07:00
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    # Khong mo 3306 ra mang xuong: chi may nay va container app dung toi.
+    ports:
+      - "127.0.0.1:${MYSQL_PORT}:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  xy-server:
+    build: .
+    image: xy-server:latest
+    container_name: xy-server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+
+    # Mang cua host: PLC nam tren dai LAN cam thang vao may, khong qua NAT.
+    # NET_ADMIN de tu gan dia chi cung dai voi PLC len card mang co day.
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+
+    env_file:
+      - path: .env
+        required: false
+
+    volumes:
+      - ./app/data:/app/app/data
+      # Ban app Android phat cho dien thoai. De ngoai image de doi ban app
+      # khong phai build lai server.
+      - ./app/updates:/app/app/updates
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import os, urllib.request
+          port = os.environ.get("HTTP_PORT", "8000")
+          urllib.request.urlopen(f"http://127.0.0.1:{port}/healthz", timeout=3)
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+volumes:
+  dbdata:

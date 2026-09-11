@@ -1,9 +1,11 @@
 .venv/
-orangepi/
-S7 1200/
-winlab/
 __pycache__/
 *.pyc
 *.ap17
 *.tmp
 .vscode/
+
+# Giu bi mat: gia tri that cua .env khong bao gio len repo public
+.env
+.env.bak-*
+!.env.example

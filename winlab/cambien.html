@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartTraySort — vị trí cảm biến</title>
+<style>
+:root {
+  --bg: #10141a; --surface: #171d26; --sunk: #0c1016; --line: #2b3644;
+  --text: #e6edf5; --muted: #8ea0b4;
+  --ax-x: #ef6a5c; --ax-y: #58c97a; --ax-z: #5aa6ee;
+  --warn: #f0a92c; --danger: #e8503a; --ok: #35c46b;
+  --r: 10px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+.wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px 60px; }
+h1 { margin: 0 0 4px; font-size: clamp(22px, 3.4vw, 30px); }
+.lede { color: var(--muted); margin: 0 0 22px; max-width: 74ch; }
+
+.deck { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 18px; align-items: start; }
+@media (max-width: 940px) { .deck { grid-template-columns: 1fr; } }
+
+/* ------------------------------------------------------------- khung 3D */
+.stage {
+  position: relative; height: 520px; overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 15%, var(--surface), var(--sunk));
+  border: 1px solid var(--line); border-radius: var(--r);
+  cursor: grab; touch-action: none; perspective: 2000px; perspective-origin: 50% 50%;
+}
+.stage.is-drag { cursor: grabbing; }
+.scene {
+  position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--elev, 18deg)) rotateY(var(--azim, -34deg));
+}
+.scene * { transform-style: preserve-3d; }
+
+.floor {
+  position: absolute; width: 900px; height: 460px; margin: -230px 0 0 -120px;
+  transform: rotateX(90deg); opacity: .35;
+  background:
+    repeating-linear-gradient(0deg,  var(--line) 0 1px, transparent 1px 38px),
+    repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 38px);
+}
+.rail {
+  position: absolute; height: 14px; margin: -7px 0 0 0;
+  transform: rotateX(90deg);
+  background: linear-gradient(180deg, #7d8899, var(--line)); border-radius: 3px;
+}
+.mast { position: absolute; width: 10px; margin-left: -5px;
+        background: linear-gradient(180deg, #7d8899, var(--line)); border-radius: 2px; }
+.mast--b { transform: rotateY(90deg); }
+.head { position: absolute; width: 58px; height: 15px; margin: -7px 0 0 -29px;
+        background: var(--ax-z); border-radius: 3px; }
+.head--b { transform: rotateY(90deg); }
+.basket {
+  position: absolute; border: 1px solid var(--line); background: var(--surface);
+  transform: rotateX(90deg); opacity: .55; border-radius: 3px;
+}
+
+/* -------------------------------------------------------------- cảm biến */
+.sensor { position: absolute; cursor: pointer; transition: opacity .2s; }
+
+/* Hai hàm của khe. Vật chắn đi qua giữa chúng thì cảm biến tác động. */
+.sensor__jaw {
+  position: absolute; width: 22px; height: 15px; margin: -8px 0 0 -11px;
+  border: 2px solid; border-radius: 3px; background: rgba(16,20,26,.92);
+}
+.sensor__bridge {
+  position: absolute; width: 6px; margin-left: -3px;
+  transform: rotateX(90deg); opacity: .75; border-radius: 2px;
+}
+/* Cờ chắn gắn trên phần chuyển động, luồn vào giữa khe. */
+.sensor__flag {
+  position: absolute; width: 34px; height: 24px; margin: -12px 0 0 -17px;
+  background: repeating-linear-gradient(45deg, #8ea0b4 0 4px, #6b7c90 4px 8px);
+  border-radius: 2px; opacity: 0; transition: opacity .2s;
+}
+.sensor__arrow {
+  position: absolute; margin: -34px 0 0 -8px; width: 16px; text-align: center;
+  font: 700 17px/1 system-ui; color: var(--warn); opacity: 0; transition: opacity .2s;
+  transform: rotateY(calc(-1 * var(--azim, -34deg))) rotateX(calc(-1 * var(--elev, 18deg)));
+}
+.sensor__tag {
+  position: absolute; margin-left: -62px; margin-top: -52px; width: 124px;
+  padding: 4px 6px; border-radius: 6px; text-align: center;
+  background: rgba(12,16,22,.88); border: 1px solid var(--line);
+  font: 600 11px/1.3 ui-monospace, Consolas, monospace;
+  transform: rotateY(calc(-1 * var(--azim, -34deg))) rotateX(calc(-1 * var(--elev, 18deg)));
+  pointer-events: none; white-space: nowrap;
+}
+.sensor__tag small { display: block; font-weight: 400; font-size: 10px; color: var(--muted); }
+.sensor.is-on .sensor__tag { border-color: currentColor; }
+.sensor.is-on .sensor__flag,
+.sensor.is-on .sensor__arrow { opacity: 1; }
+.sensor.is-on .sensor__jaw { box-shadow: 0 0 18px currentColor; }
+
+/* Chỉ hiện con đang chọn — mấy con kia mờ hẳn cho khỏi rối. */
+.stage.solo .sensor { opacity: .07; pointer-events: none; }
+.stage.solo .sensor.is-on { opacity: 1; pointer-events: auto; }
+.stage.solo .sensor:not(.is-on) .sensor__tag { display: none; }
+
+/* --------------------------------------------------------------- bảng bên */
+.panel { background: var(--surface); border: 1px solid var(--line);
+         border-radius: var(--r); padding: 16px; }
+.panel h2 { margin: 0 0 10px; font-size: 15px; }
+.solo-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px;
+                color: var(--muted); margin-bottom: 12px; cursor: pointer; }
+.list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer; text-align: left;
+  background: transparent; border: 1px solid var(--line); color: var(--text);
+  font: inherit; transition: background .15s, border-color .15s;
+}
+.item:hover { background: rgba(255,255,255,.04); }
+.item.is-on { border-color: currentColor; background: rgba(255,255,255,.06); }
+.item.is-idle { border-style: dashed; }
+.item.is-idle b { opacity: .65; }
+.item i { width: 11px; height: 11px; border-radius: 50%; background: currentColor; flex: none; }
+.item b { font: 600 12px ui-monospace, Consolas, monospace; }
+.item span { color: var(--muted); font-size: 12px; margin-left: auto; }
+
+.detail { border-top: 1px solid var(--line); padding-top: 14px; }
+.detail h3 { margin: 0 0 2px; font-size: 17px; }
+.detail .addr { font: 600 12px ui-monospace, Consolas, monospace; color: var(--muted); }
+.detail dl { display: grid; grid-template-columns: 86px 1fr; gap: 6px 10px; margin: 12px 0 0; }
+.detail dt { color: var(--muted); font-size: 12px; }
+.detail dd { margin: 0; font-size: 13px; }
+.detail p { font-size: 13px; color: var(--muted); margin: 12px 0 0; }
+
+.hint { color: var(--muted); font-size: 12px; margin: 10px 2px 0; }
+.hint--warn { color: var(--warn); }
+.notes { margin-top: 22px; display: grid; gap: 14px;
+         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.note { background: var(--surface); border: 1px solid var(--line);
+        border-radius: var(--r); padding: 14px 16px; }
+.note h3 { margin: 0 0 6px; font-size: 14px; }
+.note p { margin: 0; font-size: 13px; color: var(--muted); }
+.note--warn { border-color: var(--warn); }
+code { font: 600 12px ui-monospace, Consolas, monospace; color: var(--warn); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cảm biến gắn ở đâu trên máy</h1>
+  <p class="lede">
+    Cảm biến <b>Omron EE-SX951-W</b> — loại khe chắn sáng, khe rộng 5 mm.
+    Bấm vào một con trong hình hoặc trong danh sách: con đó sáng lên kèm cờ chắn và
+    mũi tên chỉ hướng đi tới, mấy con còn lại mờ đi cho dễ nhìn.
+    Kéo chuột để xoay, bấm đúp về góc nhìn đầu.
+  </p>
+
+  <div class="deck">
+    <div class="stage" id="stage">
+      <div class="scene" id="scene"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Bảy vị trí</h2>
+      <label class="solo-toggle">
+        <input type="checkbox" id="solo" checked>
+        Chỉ hiện con đang chọn
+      </label>
+      <div class="list" id="list"></div>
+      <div class="detail" id="detail"></div>
+    </div>
+  </div>
+
+  <p class="hint" id="src">đang đọc cấu hình…</p>
+
+  <div class="notes">
+    <div class="note note--warn">
+      <h3>Công tắc nằm NGOÀI vạch phần mềm</h3>
+      <p>Giới hạn phần mềm chặn trước. Công tắc lấn ra ngoài 10–20 mm, chỉ ăn khi
+      phần mềm đã hỏng. Đặt trùng nhau thì chạy bình thường cũng chạm, báo lỗi suốt.</p>
+    </div>
+    <div class="note">
+      <h3>Ba con HOME chưa cần lắp</h3>
+      <p><code>HomeMode = 0</code> nghĩa là gán thẳng vị trí hiện tại làm gốc — cách
+      bạn đang dùng khi bấm "Lấy gốc toạ độ". Muốn dò gốc tự động thì đổi sang 3.</p>
+    </div>
+    <div class="note">
+      <h3>Bảy chân này SCL không đọc</h3>
+      <p>Chúng khai thẳng trong Technology Object, mục <code>Homing</code> và
+      <code>Position limits</code>. Cắm dây thôi chưa đủ — chưa khai trong TO thì
+      bấm cũng không ai nghe.</p>
+    </div>
+    <div class="note note--warn">
+      <h3>EE-SX951 là NPN — 1M phải lên 24 V</h3>
+      <p>Ngõ vào S7-1200 chọn được cả hai chiều. Đấu <code>1M</code> xuống 0 V thì
+      cần cảm biến PNP. Con này NPN nên <b><code>1M</code> phải nối +24 V</b>, dây
+      tín hiệu kéo ngõ vào xuống 0 V khi tác động.</p>
+    </div>
+    <div class="note">
+      <h3>Dùng ngõ Light-ON</h3>
+      <p>Con này có sẵn hai ngõ ra. Chọn ngõ <b>Light-ON</b>: khe thông = có tín
+      hiệu = bình thường. Cờ chắn vào khe hoặc <b>đứt dây</b> đều thành mất tín
+      hiệu — hỏng cũng dừng máy, giống tiếp điểm NC.</p>
+    </div>
+    <div class="note">
+      <h3>Còn cữ chặn cơ khí</h3>
+      <p>Ngoài cùng vẫn phải có cữ cứng, để lỡ cả phần mềm lẫn công tắc đều hỏng
+      thì máy không văng khỏi ray.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// Kich thuoc may KHONG chep cung o day. Trang tu goi server lay cau hinh dang
+// chay, nen sua kich thuoc ro tren dashboard la hinh nay doi theo.
+//
+// Bo so duoi chi la du phong khi mo file truc tiep, khong qua server.
+const FALLBACK = { xTravel: 1250, zTravel: 400, rackOffset: 95, basketDepth: 200,
+                   xFirst: 200, xPitch: 237.5, columns: 5, zRows: [100, 280],
+                   parkX: 5, parkZ: 5 };
+let M = { ...FALLBACK };
+let live = false;
+
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/config/geometry', { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    const g = d.geometry, rows = [...new Set(d.positions.map(p => p.rack_z))].sort((a, b) => a - b);
+    M = {
+      xTravel: g.x_travel, zTravel: g.z_travel,
+      rackOffset: g.rack_offset, basketDepth: g.basket_depth,
+      xFirst: g.x_first, xPitch: d.derived.buoc_ngang_mm,
+      columns: d.layout.columns, zRows: rows,
+      parkX: g.park_x, parkZ: g.park_z,
+      basketLength: g.basket_length,
+    };
+    live = true;
+  } catch {
+    live = false;                 // mo bang file:// thi khong goi duoc, dung so du phong
+  }
+  showSource();
+}
+
+function showSource() {
+  const el = document.getElementById('src');
+  el.textContent = live
+    ? `số thật từ server · trục X 0–${M.xTravel} mm · trục Z 0–${M.zTravel} mm · ${M.columns} cột rổ`
+    : 'KHÔNG nối được server — đang dùng số mặc định. Mở qua http://127.0.0.1:8000/static/cambien.html để lấy số thật.';
+  el.className = live ? 'hint' : 'hint hint--warn';
+}
+// Ty le tu co theo be ngang khung, khong dat cung: man hinh hep thi hinh nho
+// lai chu khong lot ra ngoai.
+let SCALE = 0.42;
+const mm = v => v * SCALE;
+
+function fitScale() {
+  const box = stage.getBoundingClientRect();
+  const usableW = Math.max(240, box.width - 150);
+  const usableH = Math.max(200, box.height - 150);
+  SCALE = Math.min(0.55, Math.max(0.10,
+    Math.min(usableW / M.xTravel, usableH / M.zTravel)));
+}
+
+// Bay vi tri cam bien. x/z tinh bang mm tren may that.
+const SENSORS = [
+  { id: 'X_MIN',  addr: 'I0.1', axis: 'x', travel: 'x', x: -15,   z: 0, depth: -90,
+    mount: 'bắt cố định trên khung, mặt SAU ray',
+    where: 'Đầu ray, trước vạch 0 khoảng 15 mm',
+    role: 'Chặn biên đầu hành trình ngang',
+    why: 'Bàn trượt chạy quá vạch 0 thì gạt vào đây. Phần mềm đã chặn ở 0 rồi, con này chỉ ăn khi phần mềm hỏng.' },
+  { id: 'X_HOME', addr: 'I0.0', axis: 'x', travel: 'x', x: 60,    z: 0, depth: -30,
+    used: false,
+    mount: 'bắt cố định trên khung, cách X_MIN 75 mm',
+    where: 'X = 60 mm — vào hẳn trong hành trình',
+    role: 'Dò gốc toạ độ trục ngang',
+    why: 'CHƯA DÙNG. Đặt vào 60 mm để lúc dò gốc còn 75 mm giảm tốc trước khi chạm X_MIN. Đặt sát vạch 0 là máy chưa kịp dừng đã đâm công tắc giới hạn. Dùng tới thì phải đổi HomeMode sang 3 và đặt HomeX = 60.' },
+  { id: 'X_MAX',  addr: 'I0.2', axis: 'x', travel: 'x', x: 1265,  z: 0, depth: -90,
+    mount: 'bắt cố định trên khung, mặt SAU ray',
+    where: 'Cuối ray, sau vạch 1250 khoảng 15 mm',
+    role: 'Chặn biên cuối hành trình ngang',
+    why: 'Cặp với X_MIN. Hai con này là lớp bảo vệ cuối của trục X.' },
+  { id: 'Z_MIN',  addr: 'I0.4', axis: 'z', travel: 'z', x: 5,     z: -15, depth: 30,
+    mount: 'bắt trên CỘT — cột chạy ngang theo X thì nó đi theo',
+    where: 'Đáy cột, dưới vạch 0 khoảng 15 mm',
+    role: 'Chặn biên dưới trục lên xuống',
+    why: 'Quan trọng hơn X vì trục này treo tải. Đầu công tác tụt quá là gạt vào đây.' },
+  { id: 'Z_HOME', addr: 'I0.3', axis: 'z', travel: 'z', x: 5,     z: 60, depth: 90,
+    used: false,
+    mount: 'bắt trên CỘT, cách Z_MIN 75 mm',
+    where: 'Z = 60 mm — vào hẳn trong hành trình',
+    role: 'Dò gốc toạ độ trục lên xuống',
+    why: 'CHƯA DÙNG. Trục này treo tải nên khoảng giảm tốc còn quan trọng hơn trục ngang. Dùng tới thì đặt HomeZ = 60.' },
+  { id: 'Z_MAX',  addr: 'I0.5', axis: 'z', travel: 'z', x: 5,     z: 415, depth: 30,
+    mount: 'bắt trên CỘT, đỉnh',
+    where: 'Đỉnh cột, trên vạch 400 khoảng 15 mm',
+    role: 'Chặn biên trên trục lên xuống',
+    why: 'Khay hàng trên dừng ở Z = 370, nên còn 45 mm mới chạm con này.' },
+  { id: 'Y_HOME', addr: 'I0.6', axis: 'y', travel: 'y', x: 5,     z: 200, depth: 95,
+    used: false,
+    mount: 'bắt trên đầu công tác, cạnh cơ cấu lật',
+    where: 'Trên cơ cấu lật, đúng vị trí 0°',
+    role: 'Dò gốc góc lật',
+    why: 'Trục quay nên không cần công tắc biên — giới hạn ±70° trong TO lo đủ. Chỉ cần một con báo vị trí giữa.' },
+];
+
+const COLOR = { x: 'var(--ax-x)', y: 'var(--ax-y)', z: 'var(--ax-z)' };
+const AXIS_NAME = { x: 'X — chạy ngang', y: 'Y — lật', z: 'Z — lên xuống' };
+
+const scene = document.getElementById('scene');
+const stage = document.getElementById('stage');
+const list  = document.getElementById('list');
+const detail = document.getElementById('detail');
+
+const el = (cls, txt) => { const d = document.createElement('div'); d.className = cls;
+                           if (txt != null) d.textContent = txt; return d; };
+const place = (n, x, y, z, extra = '') => {
+  n.style.transform = `translate3d(${mm(x)}px, ${-mm(y)}px, ${mm(z)}px) ${extra}`;
+  return n;
+};
+
+// Goc toa do man hinh dat giua hanh trinh cho can doi.
+const cx = M.xTravel / 2, cz = M.zTravel / 2;
+const px = v => v - cx;
+
+function build() {
+  scene.replaceChildren();
+  scene.append(el('floor'));
+
+  const rail = el('rail');
+  rail.style.width = `${mm(M.xTravel)}px`;
+  place(rail, px(0), 0, 0);
+  scene.append(rail);
+
+  // hai day ro, chi de de hinh dung
+  for (const dir of [1, -1]) {
+    for (const rowZ of M.zRows) {
+      for (let c = 0; c < M.columns; c++) {
+        const b = el('basket');
+        b.style.width = `${mm(200)}px`;
+        b.style.height = `${mm(M.basketDepth)}px`;
+        b.style.margin = `${-mm(M.basketDepth) / 2}px 0 0 ${-mm(200) / 2}px`;
+        place(b, px(M.xFirst + c * M.xPitch), rowZ, dir * (M.rackOffset + M.basketDepth / 2),
+              'rotateX(90deg)');
+        scene.append(b);
+      }
+    }
+  }
+
+  // Cot dung dat o CHO CHO - do la vi tri may thuc su dung khi nghi, khong
+  // phai mot diem giua ray dat dai.
+  const gantry = el('gantry');
+  gantry.style.position = 'absolute';
+  place(gantry, px(M.parkX), 0, 0);
+  const h = `${mm(M.zTravel)}px`;
+  for (const cls of ['mast', 'mast mast--b']) {
+    const m = el(cls); m.style.height = h; m.style.marginTop = `-${h}`; gantry.append(m);
+  }
+  const car = el('carriage'); car.style.position = 'absolute';
+  place(car, 0, M.parkZ, 0);      // dau cong tac cung dang o cho cho
+  car.append(el('head'), el('head head--b'));
+  gantry.append(car);
+  scene.append(gantry);
+
+  // Cac cam bien. Ve dung hinh KHE chu khong phai cham tron: hai ham cach nhau
+  // 5 mm, co chan gan tren phan chuyen dong luon qua giua hai ham.
+  SENSORS.forEach(s => {
+    const node = el('sensor');
+    node.dataset.id = s.id;
+    node.style.color = COLOR[s.axis];
+
+    // hai ham, cach nhau theo chieu SAU nen co chan di ngang qua giua
+    const gap = Math.max(9, mm(30));
+    for (const side of [1, -1]) {
+      const jaw = el('sensor__jaw');
+      jaw.style.borderColor = COLOR[s.axis];
+      if (s.used === false) jaw.style.borderStyle = 'dashed';
+      jaw.style.transform = `translate3d(0, 0, ${side * gap / 2}px)`;
+      node.append(jaw);
+    }
+    const bridge = el('sensor__bridge');           // than chu L noi hai ham
+    bridge.style.background = COLOR[s.axis];
+    bridge.style.height = `${gap}px`;
+    bridge.style.marginTop = `${-gap / 2}px`;
+    node.append(bridge);
+
+    // co chan tren phan chuyen dong — mau xam, luon vuong goc voi khe
+    const flag = el('sensor__flag');
+    node.append(flag);
+
+    // mui ten chi huong co chan di toi
+    const arrow = el('sensor__arrow');
+    arrow.textContent = s.travel === 'z' ? '↕' : s.travel === 'y' ? '↻' : '↔';
+    node.append(arrow);
+
+    const tag = el('sensor__tag');
+    tag.append(document.createTextNode(s.id));
+    const sub = document.createElement('small');
+    sub.textContent = s.addr;
+    tag.append(sub);
+    node.append(tag);
+
+    // Truc Z bat tren COT, ma cot dung o cho cho — nen lay park_x lam goc.
+    const sx = s.axis === 'z' ? M.parkX : s.x;
+    place(node, px(sx), s.z, s.depth);
+    node.addEventListener('click', () => select(s.id));
+    scene.append(node);
+  });
+}
+
+function buildList() {
+  list.replaceChildren(...SENSORS.map(s => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'item';
+    b.dataset.id = s.id;
+    b.style.color = COLOR[s.axis];
+    b.append(el('', ''), Object.assign(document.createElement('b'), { textContent: s.id }));
+    b.firstChild.replaceWith(document.createElement('i'));
+    b.firstChild.style.color = COLOR[s.axis];
+    const span = document.createElement('span');
+    span.textContent = s.used === false ? 'chưa dùng' : s.addr;
+    if (s.used === false) span.style.opacity = '.7';
+    b.append(span);
+    if (s.used === false) b.classList.add('is-idle');
+    b.addEventListener('click', () => select(s.id));
+    return b;
+  }));
+}
+
+function select(id) {
+  const s = SENSORS.find(v => v.id === id);
+  document.querySelectorAll('.sensor, .item').forEach(n =>
+    n.classList.toggle('is-on', n.dataset.id === id));
+  stage.classList.toggle('solo', document.getElementById('solo').checked);
+
+  detail.replaceChildren();
+  const h3 = document.createElement('h3');
+  h3.textContent = s.id;
+  h3.style.color = COLOR[s.axis];
+  const addr = el('addr', s.used === false
+    ? `${s.addr}  ·  ${AXIS_NAME[s.axis]}  ·  CHƯA DÙNG`
+    : `${s.addr}  ·  ${AXIS_NAME[s.axis]}`);
+  if (s.used === false) addr.style.color = 'var(--warn)';
+  const dl = document.createElement('dl');
+  const travelName = { x: 'chạy ngang theo X', z: 'lên xuống theo Z', y: 'quay theo Y' }[s.travel];
+  [['Vai trò', s.role],
+   ['Lắp ở', s.where],
+   ['Bắt vào', s.mount],
+   ['Cờ chắn', `gắn trên phần ${travelName}, luồn qua giữa khe 5 mm`],
+   ['Ai đọc', 'Technology Object']].forEach(([k, v]) => {
+    const dt = document.createElement('dt'); dt.textContent = k;
+    const dd = document.createElement('dd'); dd.textContent = v;
+    dl.append(dt, dd);
+  });
+  const p = document.createElement('p');
+  p.textContent = s.why;
+  detail.append(h3, addr, dl, p);
+}
+
+// --------------------------------------------------------------- kéo để xoay
+const VIEW0 = { azim: -34, elev: 18 };
+let view = { ...VIEW0 }, from = null;
+
+function apply() {
+  scene.style.setProperty('--azim', `${view.azim}deg`);
+  scene.style.setProperty('--elev', `${view.elev}deg`);
+}
+stage.addEventListener('pointerdown', e => {
+  if (e.target.closest('.sensor')) return;      // bấm cảm biến thì không kéo
+  from = { mx: e.clientX, my: e.clientY, ...view };
+  stage.setPointerCapture(e.pointerId);
+  stage.classList.add('is-drag');
+});
+stage.addEventListener('pointermove', e => {
+  if (!from) return;
+  view.azim = from.azim + (e.clientX - from.mx) * 0.4;
+  view.elev = Math.min(80, Math.max(-15, from.elev - (e.clientY - from.my) * 0.3));
+  apply();
+});
+['pointerup', 'pointercancel', 'pointerleave'].forEach(n =>
+  stage.addEventListener(n, () => { from = null; stage.classList.remove('is-drag'); }));
+stage.addEventListener('dblclick', () => { view = { ...VIEW0 }; apply(); });
+
+function redraw(keep) {
+  fitScale();
+  build();
+  apply();
+  select(keep || 'X_MIN');
+}
+
+document.getElementById('solo').addEventListener('change', () => {
+  const keep = document.querySelector('.item.is-on')?.dataset.id;
+  select(keep || 'X_MIN');
+});
+
+buildList();
+loadConfig().then(() => redraw());
+
+// Doi kich thuoc cua so thi ve lai cho vua, giu nguyen con dang chon.
+let resizeTimer;
+addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  const keep = document.querySelector('.item.is-on')?.dataset.id;
+  resizeTimer = setTimeout(() => redraw(keep), 150);
+});
+</script>
+</body>
+</html>
