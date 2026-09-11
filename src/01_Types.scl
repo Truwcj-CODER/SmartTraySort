@@ -66,8 +66,8 @@ VERSION : 0.5
       VelZ : Real := 60.0;            // mm/s  - truc len xuong, cham hon vi chong trong luc
 
       // --- toc do jog tay ---
-      JogVelX : Real := 10.0;
-      JogVelY : Real := 20.0;
+      JogVelX : Real := 40.0;
+      JogVelY : Real := 40.0;
       JogVelZ : Real := 10.0;
       JogMaxTime : Time := T#5s;       // AN TOAN: gioi han thoi gian jog lien tuc.
                                        // Orange Pi giu bit jog roi rot mang thi truc
@@ -158,7 +158,13 @@ END_TYPE
 //   14 = GHI mot tham so chay may: SelPos = ma tham so, TargetX = gia tri
 //        1 VelX   2 VelY   3 VelZ   4 TiltAngle   5 TiltVel
 //        6 DwellTime(ms)   7 TiltHold(ms)   8 TiltCount
-//        9 JogVelX  10 JogVelY  11 JogVelZ
+//        9 JogVelX  10 JogVelY  11 JogVelZ   12 UseAutoHome
+//        -- 16..18 khong vao bang tham so ma sua thang DynamicDefaults cua
+//           truc, tuc gia toc dung cho moi lenh chay:
+//        16 Acceleration X 17 Acceleration Y 18 Acceleration Z
+//           (moi ma dat luon ca Deceleration va EmergencyDeceleration)
+//        -- 13..15 bo trong: tung dinh dung cho MaxVelocity nhung
+//           DynamicLimits.MaxVelocity la read-only, chi dat duoc trong TIA
 //        -> vi tri cho khong o goc toa do ma o giua gian khay, noi lap cam bien
 //
 //  === BANG KET QUA (Result) ===

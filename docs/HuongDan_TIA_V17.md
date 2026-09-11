@@ -42,7 +42,7 @@ Trong cửa sổ *Configuration* của mỗi trục:
 | **Hardware interface → Drive** | Pulse generator = `Pulse_1` (AxisX) / `Pulse_2` (AxisY).<br>**Bỏ tick** *Enable output* và *Ready input* — mô phỏng không có driver thật |
 | **Extended parameters → Mechanics** | Pulses per motor revolution = `3200`<br>Load movement per motor revolution = `5.0` mm |
 | **Position limits** | **Bỏ tick** *Enable hardware limit switches*<br>Tick *Enable software limit switches*: **AxisX** từ `0.0` đến `1300.0`; **AxisY** từ `0.0` đến `400.0` |
-| **Dynamics → General** | Max velocity `150.0` mm/s, Acceleration `200.0` mm/s², Deceleration `200.0` mm/s² |
+| **Dynamics → General** | Max velocity `150.0` mm/s, Acceleration `200.0` mm/s², Deceleration `200.0` mm/s².<br>Chỉ là giá trị khởi đầu — từ bản này server ghi đè cả ba mỗi lần khởi động, xem §3.6 |
 | **Homing** | Để mặc định. Chương trình dùng `HomeMode = 0` (đặt gốc tại chỗ) nên không cần công tắc Home |
 
 > ⚠️ Software limit phải bao trùm tọa độ trong bảng. Bảng mặc định có ô tới X = 1100 mm, Y = 300 mm.
@@ -182,9 +182,52 @@ Khi có driver và động cơ, chỉ đổi **thiết lập**, không sửa cod
 2. **Hardware interface → Drive**: tick lại *Enable output* nếu driver có chân ENA.
 3. **Position limits**: tick *Enable hardware limit switches*, gán DI công tắc giới hạn.
 4. **Homing → Active homing**: gán DI công tắc Home, chọn chiều tìm và tốc độ tìm (chậm, 5–10 mm/s).
-5. **Dynamics**: đặt max velocity theo tần số trần của driver.
+5. **Dynamics**: đặt max velocity theo tần số trần của **động cơ**, không phải của PLC.
    Công thức: `v_max (mm/s) = f_max (Hz) ÷ (pulse_per_rev ÷ mm_per_rev)`.
-   Ví dụ TB6600 20 kHz, 3200 xung/vòng, vít me 5 mm → `20000 ÷ 640 = 31 mm/s`. Đặt vận hành ~20 mm/s.
+   Đo `f_max` bằng tay: cho trục chạy ở chế độ phát xung rồi tăng dần tới khi động cơ
+   đuối bước. Máy này đo được **20 000 xung/s** trên cả ba trục — thấp hơn nhiều so với
+   trần 100 kHz của kênh PTO, nên đây mới là con số quyết định.
+   Với cơ khí hiện tại: X `20000 ÷ (3200÷32)` = **200 mm/s**, Z `20000 ÷ (2000÷54)` = **540 mm/s**.
+
+### 3.6 Trần tốc độ đặt ở TIA, gia tốc chỉnh từ web
+
+**Trần tốc độ — chỉ TIA đặt được.** `DynamicLimits.MaxVelocity` là read-only đối với
+chương trình, viết vào là TIA báo *"The tag is read-only"*. Đặt tay một lần, cho rộng rãi:
+
+| Trục | Max velocity | Từ đâu ra |
+|---|---|---|
+| `Axis_X` | `200.0` mm/s | `20000 ÷ (3200÷32)` |
+| `Axis_Z` | `540.0` mm/s | `20000 ÷ (2000÷54)` |
+| `Axis_Y` | `7200.0` °/s | `20000 ÷ (1000÷360)` |
+
+Đặt xong thì thôi, vì nó sống qua lần cúp điện. Trang Cài đặt chặn sẵn không cho nhập
+quá mấy con số này (`Geometry.velocity_limits()` trong `orangepi/app/geometry.py`), nên
+không bao giờ chạm tới `ErrorID 16#8402` nữa.
+
+**Gia tốc — server ghi đè, không phải mở TIA.** `FB_XY_Tray` nhận thêm mã tham số
+**16/17/18** của lệnh 14, ghi thẳng vào `DynamicDefaults.Acceleration` cùng `Deceleration`
+và `EmergencyDeceleration` của X/Y/Z. Nhánh này chỉ chạy khi `StepNo = 0`.
+Server đẩy xuống mỗi lần lưu cấu hình và mỗi lần khởi động.
+
+Giá trị lấy từ ba hằng số `ACCEL_X` / `ACCEL_Z` / `ACCEL_Y` trong
+`orangepi/app/geometry.py`, không phải ô nhập trên web — đổi gia tốc là việc chỉnh một
+lần khi lắp máy, không phải việc hằng ngày. Đang để 200, bằng đúng giá trị trong TIA.
+
+Đáng nâng khi cần chu trình ngắn hơn: bước giữa hai cột là 406 mm, ở 200 mm/s với gia tốc
+200 thì mất 100 mm tăng tốc + 100 mm hãm, đúng nửa quãng đường. Để 1000 thì chỉ còn 20 mm
+mỗi đầu. Nâng từ từ và chạy thử — gia tốc gắt quá thì động cơ trượt bước.
+
+⚠️ Gia tốc ghi kiểu này nằm trong DB của trục nên **cúp điện bật lại là về con số khai
+trong TIA**. Bình thường không thấy vì server đẩy lại ngay khi khởi động, nhưng chạy PLC
+mà không có server thì vẫn là số cũ — vậy nên §3.2 vẫn phải đặt cho đúng.
+
+Ba chỗ đã vấp khi viết đoạn này, ghi lại kẻo quên:
+
+- Gọi thẳng `"Axis_X"`, **không** qua tham số `IN_OUT` `#AxisX`. Kiểu `TO_PositioningAxis`
+  chỉ là tham chiếu để đút vào các lệnh `MC_*`, không với tới được các ô cấu hình.
+- **Không có tầng `.Config`.** Project này dùng `TO_PositioningAxis V8`, cấu trúc phẳng.
+  Tầng `.Config` chỉ còn ở TO đời cũ (S7-1200 firmware V3 trở về trước).
+- `MaxVelocity` read-only, như trên.
 
 ### 3.3 Hiệu chuẩn — làm trước khi teach
 Dùng *Commissioning* cho trục chạy đúng 100 mm rồi lấy thước đo. Lệch thì sửa

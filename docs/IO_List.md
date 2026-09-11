@@ -103,7 +103,7 @@ Không ảnh hưởng chương trình, nhưng mỗi con phải kiểm riêng 3 t
 | Cần kiểm | Vì sao |
 |---|---|
 | Mức áp đầu vào (5 V hay 24 V) | Quyết định có cần điện trở 2 kΩ hay không |
-| Tần số xung tối đa | Đặt `max velocity` trong Technology Object và `VelX`/`VelY` trong `DB_TrayTable`. TB6600 thực tế ~20–40 kHz, DM542 tới ~200 kHz |
+| Tần số xung tối đa | Quyết định `max velocity` của trục và `VelX`/`VelY` trong `DB_TrayTable`. TB6600 thực tế ~20–40 kHz, DM542 tới ~200 kHz. Nhưng trần thật là của **động cơ**: bộ này đo được **20 000 xung/s**, ghi ở `MAX_PULSE_HZ` trong `orangepi/app/geometry.py` |
 | Vi bước cài trên DIP | Nhập vào `Pulses per motor revolution` của đúng trục đó |
 
 Ghi lại thông số thực tế vào bảng dưới cho khỏi quên:
@@ -128,6 +128,11 @@ Ba lưu ý riêng cho bộ driver này:
 
 `v_max (mm/s) = tần số trần (Hz) ÷ (xung mỗi vòng ÷ mm mỗi vòng)` — rồi đặt tốc độ vận hành khoảng
 50–60 % giá trị này.
+
+Cột "tần số trần" ở trên là của **kênh PTO trên PLC**, không phải của động cơ. Động cơ đuối bước
+trước khi PLC hết sức, nên con số dùng thật là cái đo được ở máy: **20 000 xung/s**. Quy ra tốc độ
+với cơ khí hiện tại (X 3200 xung/32 mm, Z 2000 xung/54 mm): X **200 mm/s**, Z **540 mm/s**.
+Trang Cài đặt hiện đúng hai con số này và chặn không cho đặt cao hơn.
 
 ### 3.4 `ASD556R-LW` (Lan Wei) — trục Y, chép từ nhãn trên thân
 

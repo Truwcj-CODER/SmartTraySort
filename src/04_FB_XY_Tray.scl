@@ -368,14 +368,15 @@ BEGIN
             IF #step = 0 THEN
                // Toc do PHAI duong. Go nham so 0 tren web thi MC_MoveAbsolute /
                // MC_MoveJog bao loi ngay lan chay dau va may dung giua chung,
-               // nen chan ngay tu day. Ma 1 2 3 5 9 10 11 deu la toc do;
-               // 4 (goc lat) duoc am, 6 7 8 duoc bang 0.
+               // nen chan ngay tu day. Ma 1 2 3 5 9 10 11 16 17 18 deu la toc do
+               // hay gia toc; 4 (goc lat) duoc am, 6 7 8 duoc bang 0.
                // Dat truoc la 2, nhanh ELSE se ghi de thanh 5 neu ma tham so la.
                // KHONG duoc doc lai #Result de suy ra ket qua: no la bien tinh,
                // con giu gia tri cua lenh TRUOC do.
                #Result := 2;
                IF ((#SelPos <= 3) OR (#SelPos = 5)
-                   OR (#SelPos = 9) OR (#SelPos = 10) OR (#SelPos = 11))
+                   OR ((#SelPos >= 9) AND (#SelPos <= 11))
+                   OR ((#SelPos >= 16) AND (#SelPos <= 18)))
                   AND (#TargetX <= 0.0) THEN
                   #Result := 5;              // toc do 0 hay am -> tu choi (ma 12 duoc = 0)
                ELSE
@@ -392,6 +393,49 @@ BEGIN
                      10: #Tbl.JogVelY := #TargetX;
                      11: #Tbl.JogVelZ := #TargetX;
                      12: #Tbl.UseAutoHome := (#TargetX > 0.5);  // 1=bat auto-home, 0=tat
+
+                     // --- 16..18: sua thang CAU HINH GIA TOC CUA TRUC, khong phai
+                     //     bang tham so. An toan vi ca nhanh 14 chi chay khi
+                     //     #step = 0, tuc khong truc nao dang chay.
+                     //
+                     //     Cac lenh MC_MoveAbsolute trong khoi nay KHONG truyen
+                     //     Acceleration/Deceleration nen chung lay thang tu
+                     //     DynamicDefaults. Nang toc do ma quen gia toc thi chu
+                     //     trinh gan nhu khong nhanh hon: quang tang toc v^2/2a
+                     //     dai hon ca buoc giua hai cot, truc chua kip dat toc do
+                     //     da phai ham. Dat luon ca ham va ham khan cap.
+                     //
+                     //     Ba cho da vap khi viet doan nay, ghi lai keo quen:
+                     //
+                     //     1. GOI THANG TEN DB CUA TRUC, khong qua #AxisX/#AxisY/
+                     //        #AxisZ. Tham so IN_OUT kieu TO_PositioningAxis chi
+                     //        la tham chieu de dua vao cac lenh MC_*, khong voi
+                     //        toi duoc cac o cau hinh - TIA bao "Tag not defined".
+                     //        Doi lai khoi nay gan chet voi ba cai ten do, dung
+                     //        nhu FC_Main dang truyen vao.
+                     //     2. KHONG co tang .Config. Day la TO_PositioningAxis V8,
+                     //        cau truc phang; .Config chi con o TO doi cu (S7-1200
+                     //        firmware V3 tro ve truoc).
+                     //     3. KHONG CO ma cho MaxVelocity, du rat muon co.
+                     //        DynamicLimits.MaxVelocity la READ-ONLY tren TO nay,
+                     //        TIA bao "The tag is read-only". TRAN TOC DO PHAI DAT
+                     //        TRONG TIA: Axis > Configuration > Extended parameters
+                     //        > Dynamics > General > Max velocity.
+                     //        Hoa ra lai hay hon: dat trong TIA thi song qua lan
+                     //        cup dien, con ghi tu chuong trinh thi mat.
+                     //        Tran do quyet dinh VelX/VelZ len toi dau - vuot no la
+                     //        MC_MoveAbsolute tu choi bang ErrorID 16#8402, may vao
+                     //        buoc 900 dung im. Server da chan san tu trang web nen
+                     //        binh thuong khong cham toi.
+                     16: "Axis_X".DynamicDefaults.Acceleration := #TargetX;
+                         "Axis_X".DynamicDefaults.Deceleration := #TargetX;
+                         "Axis_X".DynamicDefaults.EmergencyDeceleration := #TargetX;
+                     17: "Axis_Y".DynamicDefaults.Acceleration := #TargetX;
+                         "Axis_Y".DynamicDefaults.Deceleration := #TargetX;
+                         "Axis_Y".DynamicDefaults.EmergencyDeceleration := #TargetX;
+                     18: "Axis_Z".DynamicDefaults.Acceleration := #TargetX;
+                         "Axis_Z".DynamicDefaults.Deceleration := #TargetX;
+                         "Axis_Z".DynamicDefaults.EmergencyDeceleration := #TargetX;
                   ELSE
                      #Result := 5;              // ma tham so la
                   END_CASE;
