@@ -23,10 +23,13 @@ object Net {
         .retryOnConnectionFailure(true)
         .build()
 
-    // Lenh: co han, hong thi bao ngay.
+    // Lenh: co han, hong thi bao ngay. Nhung "Luu cau hinh" day ca bang toa do
+    // xuong PLC - moi ro mot lenh Modbus, cho PLC that xac nhan tung cai, 50 ro
+    // la ngot 15 giay. De han 15s thi lan nao cung SocketTimeout giua chung roi
+    // app im lim, khong biet xong hay hong. 90s du cho bang lon nhat.
     val rest: OkHttpClient = base.newBuilder()
-        .readTimeout(15, TimeUnit.SECONDS)
-        .writeTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(90, TimeUnit.SECONDS)
+        .writeTimeout(90, TimeUnit.SECONDS)
         .build()
 
     // Dong su kien: khong han doc, nhung van ping de biet duong da chet.

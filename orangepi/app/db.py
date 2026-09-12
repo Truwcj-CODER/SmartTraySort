@@ -19,9 +19,13 @@ from .config import Settings
 
 log = logging.getLogger(__name__)
 
-# code de NULL khi chua gan, nho vay UNIQUE van cho nhieu ro trong: MySQL khong
-# coi hai NULL la trung nhau. Dung chuoi rong thi ro thu hai se bi tu choi.
+# No FKs: the server is the only writer and enforces referential integrity in
+# the inventory layer, keeping the scan path free of cross-table locks. Time
+# columns are left for MySQL to fill. code is NULL until assigned - MySQL treats
+# NULLs as distinct so UNIQUE still allows many empty slots; an empty string
+# would make the second slot collide.
 SCHEMA = (
+    # key -> JSON store: name = 'geometry', 'geometry_pushed' (diff baseline).
     """
     CREATE TABLE IF NOT EXISTS config (
       name       VARCHAR(64)  NOT NULL PRIMARY KEY,
@@ -29,14 +33,34 @@ SCHEMA = (
       updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """,
+    # Always holds MAX_PLC_SLOTS rows; the real slot count lives in the inventory layer.
     """
     CREATE TABLE IF NOT EXISTS slots (
       slot       INT UNSIGNED NOT NULL PRIMARY KEY,
       code       VARCHAR(128) NULL,
       count      INT UNSIGNED NOT NULL DEFAULT 0,
       capacity   INT UNSIGNED NOT NULL DEFAULT 10,
-      updated_at DATETIME     NULL,
+      updated_at TIMESTAMP    NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY uq_slots_code (code)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """,
+    # A SKU belongs to exactly one order, so SKU is the primary key; scanned_at NULL = not scanned.
+    """
+    CREATE TABLE IF NOT EXISTS order_skus (
+      sku        VARCHAR(128) NOT NULL PRIMARY KEY,
+      order_code VARCHAR(128) NOT NULL,
+      scanned_at TIMESTAMP    NULL,
+      KEY idx_order_skus_order (order_code)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """,
+    # Don da nhan nhung chua co ro. order_code la KHOA CHINH, nen Kafka giao lai
+    # cung mot message (chuyen thuong voi at-least-once) thi INSERT trung khoa tu
+    # bo qua - khong sinh don ma, khong can tu viet phan chong trung.
+    """
+    CREATE TABLE IF NOT EXISTS pending_orders (
+      order_code VARCHAR(128) NOT NULL PRIMARY KEY,
+      skus       JSON         NOT NULL,
+      created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """,
 )
@@ -98,13 +122,13 @@ class Database:
             try:
                 with self.cursor() as cur:
                     cur.execute("SELECT 1")
-                log.info("da ket noi MySQL %s", self.endpoint)
+                log.info("connected to MySQL %s", self.endpoint)
                 return
             except DatabaseError as exc:
                 last = str(exc)
                 self._conn = None
                 time.sleep(1.0)
-        raise DatabaseError(f"khong ket noi duoc MySQL {self.endpoint}: {last}")
+        raise DatabaseError(f"could not connect to MySQL {self.endpoint}: {last}")
 
     def setup(self) -> None:
         with self.cursor(write=True) as cur:
@@ -173,13 +197,29 @@ class SlotTable:
         self._db = db
         self._slot_count = slot_count
         self._default_capacity = default_capacity
+        self._migrate()
         self._fill_missing()
+
+    # Legacy DB: migrate updated_at DATETIME -> TIMESTAMP so MySQL stamps it.
+    def _migrate(self) -> None:
+        with self._db.cursor(write=True) as cur:
+            cur.execute(
+                "SELECT COLUMN_TYPE AS t FROM information_schema.columns "
+                "WHERE table_schema = DATABASE() AND table_name = 'slots' "
+                "AND column_name = 'updated_at'"
+            )
+            row = cur.fetchone()
+            if row and row["t"].lower().startswith("datetime"):
+                cur.execute(
+                    "ALTER TABLE slots MODIFY COLUMN updated_at "
+                    "TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                )
 
     def _fill_missing(self) -> None:
         with self._db.cursor(write=True) as cur:
             cur.executemany(
-                "INSERT IGNORE INTO slots (slot, code, count, capacity) VALUES (%s, NULL, 0, %s)",
-                [(n, self._default_capacity) for n in range(1, self._slot_count + 1)],
+                "INSERT IGNORE INTO slots (slot, code, count, capacity) VALUES (%s, NULL, 0, 0)",
+                [(n,) for n in range(1, self._slot_count + 1)],
             )
 
     @staticmethod
@@ -210,26 +250,127 @@ class SlotTable:
         return self._row(row) if row else None
 
     def update(self, slot: int, **changes: Any) -> None:
+        if not changes:
+            return
         if "code" in changes:
             changes["code"] = changes["code"].strip() or None
-        changes["updated_at"] = datetime.now().replace(microsecond=0)
         sets = ", ".join(f"{k} = %s" for k in changes)
         with self._db.cursor(write=True) as cur:
             cur.execute(
                 f"UPDATE slots SET {sets} WHERE slot = %s", (*changes.values(), slot)
             )
 
+    # Suc chua ve 0 chu khong ve mac dinh: tu khi suc chua = so mon cua don,
+    # mot ro trong ma ghi "0/10" la noi doi - no ham y ro chua duoc 10 mon, trong
+    # khi chua co don nao thi no chua duoc dung 0.
     def reset_all(self) -> None:
         with self._db.cursor(write=True) as cur:
             cur.execute(
-                "UPDATE slots SET code = NULL, count = 0, capacity = %s, updated_at = NULL",
-                (self._default_capacity,),
+                "UPDATE slots SET code = NULL, count = 0, capacity = 0, updated_at = NULL"
             )
 
     def count_rows(self) -> int:
         with self._db.cursor() as cur:
             cur.execute("SELECT COUNT(*) AS n FROM slots")
             return int(cur.fetchone()["n"])
+
+
+# Bang tra SKU -> don hang. He tren (Kafka) day danh sach don xuong, moi don kem
+# cac SKU cua no; luc quet chi can mot lan tra bang nay.
+class SkuTable:
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    # Legacy DB: add scanned_at if missing, migrate DATETIME -> TIMESTAMP.
+    def migrate(self) -> None:
+        with self._db.cursor(write=True) as cur:
+            cur.execute(
+                "SELECT COLUMN_TYPE AS t FROM information_schema.columns "
+                "WHERE table_schema = DATABASE() AND table_name = 'order_skus' "
+                "AND column_name = 'scanned_at'"
+            )
+            row = cur.fetchone()
+            if row is None:
+                cur.execute("ALTER TABLE order_skus ADD COLUMN scanned_at TIMESTAMP NULL")
+            elif row["t"].lower().startswith("datetime"):
+                cur.execute(
+                    "ALTER TABLE order_skus MODIFY COLUMN scanned_at TIMESTAMP NULL"
+                )
+
+    def all(self) -> dict[str, str]:
+        with self._db.cursor() as cur:
+            cur.execute("SELECT sku, order_code FROM order_skus")
+            return {r["sku"]: r["order_code"] for r in cur.fetchall()}
+
+    # sku -> da quet chua. Dung de biet don nao con thieu mon nao.
+    def scanned(self) -> dict[str, bool]:
+        with self._db.cursor() as cur:
+            cur.execute("SELECT sku, scanned_at FROM order_skus")
+            return {r["sku"]: r["scanned_at"] is not None for r in cur.fetchall()}
+
+    def mark_scanned(self, sku: str) -> None:
+        with self._db.cursor(write=True) as cur:
+            cur.execute(
+                "UPDATE order_skus SET scanned_at = %s WHERE sku = %s",
+                (datetime.now().replace(microsecond=0), sku),
+            )
+
+    def put_many(self, pairs: list[tuple[str, str]]) -> None:
+        if not pairs:
+            return
+        with self._db.cursor(write=True) as cur:
+            cur.executemany(
+                "INSERT INTO order_skus (sku, order_code) VALUES (%s, %s) "
+                "ON DUPLICATE KEY UPDATE order_code = VALUES(order_code)",
+                pairs,
+            )
+
+    def drop_orders(self, orders: list[str]) -> None:
+        if not orders:
+            return
+        marks = ", ".join(["%s"] * len(orders))
+        with self._db.cursor(write=True) as cur:
+            cur.execute(f"DELETE FROM order_skus WHERE order_code IN ({marks})", orders)
+
+    def clear(self) -> None:
+        with self._db.cursor(write=True) as cur:
+            cur.execute("DELETE FROM order_skus")
+
+
+# Don dang cho ro. Vao truoc ra truoc theo luc nhan.
+class PendingTable:
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    def all(self) -> list[dict]:
+        with self._db.cursor() as cur:
+            cur.execute(
+                "SELECT order_code, skus FROM pending_orders ORDER BY created_at, order_code"
+            )
+            return [
+                {"order": r["order_code"], "skus": json.loads(r["skus"])}
+                for r in cur.fetchall()
+            ]
+
+    def put_many(self, rows: list[dict]) -> None:
+        if not rows:
+            return
+        with self._db.cursor(write=True) as cur:
+            cur.executemany(
+                "INSERT IGNORE INTO pending_orders (order_code, skus) VALUES (%s, %s)",
+                [(r["order"], json.dumps(r["skus"], ensure_ascii=False)) for r in rows],
+            )
+
+    def drop(self, codes: list[str]) -> None:
+        if not codes:
+            return
+        marks = ", ".join(["%s"] * len(codes))
+        with self._db.cursor(write=True) as cur:
+            cur.execute(f"DELETE FROM pending_orders WHERE order_code IN ({marks})", codes)
+
+    def clear(self) -> None:
+        with self._db.cursor(write=True) as cur:
+            cur.execute("DELETE FROM pending_orders")
 
 
 # Nap du lieu tu ban luu file cu sang MySQL, chi mot lan.
@@ -248,7 +389,7 @@ def migrate_json(db: Database, data_dir: Path) -> None:
                     "INSERT INTO config (name, data) VALUES ('geometry', %s)",
                     (geometry.read_text(encoding="utf-8"),),
                 )
-            log.info("da nap geometry.json vao MySQL")
+            log.info("imported geometry.json into MySQL")
 
     inventory = data_dir / "inventory.json"
     if not inventory.exists():
@@ -261,7 +402,7 @@ def migrate_json(db: Database, data_dir: Path) -> None:
     try:
         rows = json.loads(inventory.read_text(encoding="utf-8")).get("slots") or []
     except (json.JSONDecodeError, OSError) as exc:
-        log.warning("khong doc duoc inventory.json: %s", exc)
+        log.warning("could not read inventory.json: %s", exc)
         return
 
     # INSERT ... ON DUPLICATE de khong phu thuoc viec 500 dong trong da duoc tao
@@ -278,4 +419,4 @@ def migrate_json(db: Database, data_dir: Path) -> None:
             "capacity = VALUES(capacity)",
             payload,
         )
-    log.info("da nap %d dong ton kho tu inventory.json vao MySQL", len(payload))
+    log.info("imported %d stock rows from inventory.json into MySQL", len(payload))

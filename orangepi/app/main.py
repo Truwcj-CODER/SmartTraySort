@@ -14,7 +14,7 @@ from fastapi.templating import Jinja2Templates
 from .api import appdist, routes, sse, ws
 from .api.routes import send_layout
 from .config import get_settings
-from .db import ConfigStore, Database, SlotTable, migrate_json
+from .db import ConfigStore, Database, PendingTable, SkuTable, SlotTable, migrate_json
 from .geometry import Geometry
 from .inventory import DEFAULT_CAPACITY, SLOT_COUNT, Inventory
 from .plc import netsetup
@@ -27,6 +27,29 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)-7s %(name)s | %(message)s",
 )
+
+
+# Healthcheck cua docker go cua moi 30 giay, va uvicorn ghi access log cho MOI
+# request - nen log day dac "GET /healthz 200 OK", chuyen that bi chon o giua.
+# Chan rieng duong nay, moi duong khac van ghi binh thuong.
+class _BoLocHealthz(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "/healthz" not in record.getMessage()
+
+
+logging.getLogger("uvicorn.access").addFilter(_BoLocHealthz())
+
+# pymodbus ghi "Repeating...." moi lan thu lai - dong nay khong noi duoc gi ma
+# lam ngap log. Ha muc khong duoc vi pymodbus ghi no o muc ERROR, nen phai loc
+# theo NOI DUNG. Loi that ("Connection refused", "timed out") van giu.
+class _BoLocPymodbus(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "Repeating" not in record.getMessage()
+
+
+logging.getLogger("pymodbus.logging").addFilter(_BoLocPymodbus())
+logging.getLogger("pymodbus.logging").setLevel(logging.WARNING)
+
 log = logging.getLogger("app")
 
 
@@ -36,7 +59,7 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     service = PlcService(settings)
 
-    log.info("khoi dong, PLC tai %s:%s", settings.plc_host, settings.plc_port)
+    log.info("starting up, PLC at %s:%s", settings.plc_host, settings.plc_port)
 
     db = Database(settings)
     db.wait_ready(settings.mysql_ready_timeout)
@@ -52,13 +75,21 @@ async def lifespan(app: FastAPI):
     app.state.settings = settings
     app.state.db = db
     app.state.geometry_store = ConfigStore(db, "geometry", Geometry().to_dict())
-    app.state.inventory = Inventory(SlotTable(db, SLOT_COUNT, DEFAULT_CAPACITY))
+    # Baseline so send_layout writes only the changed rows, not the whole table each save.
+    app.state.geometry_pushed_store = ConfigStore(db, "geometry_pushed", {})
+    app.state.inventory = Inventory(
+        SlotTable(db, SLOT_COUNT, DEFAULT_CAPACITY),
+        SkuTable(db),
+        PendingTable(db),
+    )
 
     # Bo cuc gian ro do cau hinh quyet dinh, nen ton kho phai biet ngay tu dau
     # la co bao nhieu ro that su dang dung.
-    layout_slots = Geometry.from_dict(app.state.geometry_store.read()).slot_count
+    startup_geometry = Geometry.from_dict(app.state.geometry_store.read())
+    layout_slots = startup_geometry.slot_count
     app.state.inventory.set_active(layout_slots)
     service.slot_count = layout_slots
+    service.y_scale = startup_geometry.y_scale_for_plc()
 
     # PLC moi la noi giu bang toa do: DB_TrayTable co Retain nen mat dien bat
     # lai van con nguyen, khong can server. Rieng mot truong hop Retain khong do
@@ -69,9 +100,9 @@ async def lifespan(app: FastAPI):
         geometry = Geometry.from_dict(app.state.geometry_store.read())
         problems = geometry.problems()
         if problems:
-            log.warning("cau hinh dang loi nen khong day xuong PLC: %s", "; ".join(problems[:3]))
+            log.warning("config invalid, not pushing to PLC: %s", "; ".join(problems[:3]))
             return
-        log.info("PLC vua noi duoc, dang day lai bang toa do")
+        log.info("PLC came online, re-pushing the coordinate table")
         log.info("%s", await send_layout(app, geometry))
 
     service.on_online(resync_plc)
@@ -79,7 +110,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        log.info("dang tat, dong ket noi PLC")
+        log.info("shutting down, closing PLC connection")
         net_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await net_task

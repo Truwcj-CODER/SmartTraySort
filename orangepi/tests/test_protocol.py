@@ -114,7 +114,7 @@ class TestStatusParsing(unittest.TestCase):
         self.assertTrue(status.busy)
         self.assertEqual(status.step, 110)
         self.assertEqual(status.ack_seq, 7)
-        self.assertEqual(status.result_text, "dang chay")
+        self.assertEqual(status.result_text, "đang chạy")
 
     def test_parses_error(self):
         # bit4 Error = 16

@@ -29,6 +29,11 @@ private val JSON_TYPE = "application/json; charset=utf-8".toMediaType()
 @Serializable private data class AmountBody(val amount: Int)
 @Serializable private data class ScanBody(val code: String, val run: Boolean)
 @Serializable private data class SlotConfigBody(val code: String? = null, val capacity: Int? = null)
+@Serializable private data class CalibrateBody(
+    val axis: String,
+    val commanded: Double,
+    val measured: Double,
+)
 
 class TraySortApi(
     private val client: OkHttpClient,
@@ -49,6 +54,11 @@ class TraySortApi(
     /* ---------------------------------------------------------------- lenh chung */
     suspend fun home(): CommandOut = fetch("POST", "/api/home", "{}")
     suspend fun park(): CommandOut = fetch("POST", "/api/park", "{}")
+
+    // LIMIT la diem cam bien, co dinh theo co khi. HOME la cho may dung nghi,
+    // nguoi van hanh tu dat bang parkHere(). Truoc day hai cai nay dung chung
+    // mot toa do trong PLC nen bam nut nao cung ve mot cho.
+    suspend fun parkHere(): CommandOut = fetch("POST", "/api/park/here", "{}")
     suspend fun stop(): CommandOut = fetch("POST", "/api/stop", "{}")
     suspend fun reset(): CommandOut = fetch("POST", "/api/reset", "{}")
 
@@ -87,12 +97,24 @@ class TraySortApi(
         fetch("POST", "/api/scan", encode(ScanBody(code, run)))
 
     /* ------------------------------------------------------------------ cau hinh */
+    // Don hang dang gan o mot ro: tung SKU da vao hay chua.
+    suspend fun orderAt(slot: Int): OrderEnvelope = fetch("GET", "/api/orders/$slot", null)
+
     suspend fun geometry(): GeometryPayload = fetch("GET", "/api/config/geometry", null)
 
     suspend fun saveGeometry(values: GeometryMap): GeometrySaved =
         fetch("PUT", "/api/config/geometry", json.encodeToString(values))
 
     suspend fun pushTable(): CommandOut = fetch("POST", "/api/config/push", "{}")
+
+    /* ---------------------------------------------------------------- hieu chinh */
+    // Tinh thu, khong ghi gi. Bam bao nhieu lan cung duoc.
+    suspend fun calibratePreview(axis: String, commanded: Double, measured: Double): Calibration =
+        fetch("POST", "/api/calibrate/preview", encode(CalibrateBody(axis, commanded, measured)))
+
+    // Ghi ti le moi vao cau hinh roi day xuong PLC.
+    suspend fun calibrateApply(axis: String, commanded: Double, measured: Double): CalibrationApplied =
+        fetch("POST", "/api/calibrate/apply", encode(CalibrateBody(axis, commanded, measured)))
 
     /* --------------------------------------------------------------------- noi bo */
     private inline fun <reified T> encode(value: T): String = json.encodeToString(value)

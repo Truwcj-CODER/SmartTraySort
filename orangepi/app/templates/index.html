@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/styles.css">
-  <!-- Dat data-theme TRUOC khi ve, khong thi trang nhay sang roi moi sang toi. -->
+  <!-- Set data-theme before paint, otherwise the page flashes light then dark. -->
   <script>(function(){var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);})();</script>
 </head>
 <body>
@@ -21,51 +21,55 @@
     </div>
 
     <nav class="tabs" id="tabs">
-      <button type="button" class="tab is-active" data-tab="operate">Vận hành</button>
-      <button type="button" class="tab" data-tab="config">Cài đặt</button>
+      <button type="button" class="tab is-active" data-tab="operate" data-i18n="tab.operate">Vận hành</button>
+      <button type="button" class="tab" data-tab="config" data-i18n="tab.config">Cài đặt</button>
+      <button type="button" class="tab" data-tab="log" data-i18n="tab.log">Nhật ký</button>
     </nav>
 
     <div class="topbar__meta">
       <span class="pill" id="conn-pill" data-state="unknown">
         <span class="pill__dot"></span>
-        <span class="pill__text" id="conn-text">đang kết nối…</span>
+        <span class="pill__text" id="conn-text" data-i18n="conn.connecting">đang kết nối…</span>
       </span>
-      <span class="readout" title="ngang qua lại">X <b id="pos-x">—</b> mm</span>
-      <span class="readout" title="lật trái phải">Y <b id="pos-y">—</b>°</span>
-      <span class="readout" title="lên xuống">Z <b id="pos-z">—</b> mm</span>
-      <span class="readout">Tồn <b id="stock-total">—</b></span>
+      <span class="readout" data-i18n-title="readout.xTitle" title="ngang qua lại">X <b id="pos-x">—</b> mm</span>
+      <span class="readout" data-i18n-title="readout.yTitle" title="lật trái phải">Y <b id="pos-y">—</b>°</span>
+      <span class="readout" data-i18n-title="readout.zTitle" title="lên xuống">Z <b id="pos-z">—</b> mm</span>
       <button type="button" class="toggle" id="viz-toggle" aria-pressed="false"
-              title="Hiện / ẩn mô hình 3D">
+              data-i18n-title="top.diagramTitle" title="Hiện / ẩn mô hình 3D">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.6 21 7.5v9L12 21.4 3 16.5v-9Z"/><path d="M3 7.5 12 12.4l9-4.9M12 12.4v9"/></svg>
-        <span>Sơ đồ máy</span>
+        <span data-i18n="top.diagram">Sơ đồ máy</span>
       </button>
-      <button type="button" class="icon-btn" id="theme-btn" title="Sáng / tối">
+      <button type="button" class="icon-btn" id="lang-btn" data-i18n-title="top.langTitle" title="Tiếng Việt / English">
+        <span id="lang-label">VI</span>
+      </button>
+      <button type="button" class="icon-btn" id="theme-btn" data-i18n-title="top.themeTitle" title="Sáng / tối">
         <svg id="ico-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8 6 18M18 6l1.8-1.8"/></svg>
         <svg id="ico-moon" class="is-hidden" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg>
       </button>
     </div>
   </header>
 
-  <!-- ================================================================ VẬN HÀNH -->
+  <!-- ================================================================ OPERATE -->
   <main class="layout" data-panel="operate">
+
+    <!-- Full-width alert on top: the operator must see it at once, and here it
+         does not eat the command buttons' space. -->
+    <div class="alert is-hidden" id="alert"></div>
 
     <section class="panel panel--tray">
       <h2 class="panel__title">
-        Giàn khay
+        <span data-i18n="tray.title">Giàn khay</span>
         <span class="selected" id="summary-text">—</span>
       </h2>
 
-      <form class="scan-bar" id="scan-form">
-        <input type="text" id="scan-input" name="code" autocomplete="off"
-               placeholder="Quét mã hoặc gõ tay rồi Enter…">
-        <button type="submit" class="btn btn--primary">Quét</button>
-      </form>
-
-      <!-- Luoi o do JS dung theo bo cuc server tinh ra: so hang va so cot
-           khong co dinh, doi kich thuoc ro la luoi doi theo. -->
+      <!-- JS draws the grid from the layout the server computes: rows and columns
+           are not fixed, changing basket size re-lays the grid. -->
       <div class="tray" id="tray"></div>
 
-      <p class="hint">
+      <!-- When a slot with an order is picked: its SKU checklist + QR, like the app. -->
+      <div class="order-line is-hidden" id="order-line"></div>
+
+      <p class="hint" id="tray-hint" data-i18n-html="tray.hint">
         Chọn khay rồi bấm <b>Chạy tự động</b>, hoặc quét mã để máy tự tìm khay.
         Xanh lá còn chỗ, vàng gần đầy, đỏ đã đầy.
       </p>
@@ -73,11 +77,11 @@
 
     <section class="panel panel--viz is-hidden" id="viz-panel">
       <h2 class="panel__title">
-        Mô hình 3D
-        <span class="selected">chạy theo vị trí thật của 3 trục</span>
+        <span data-i18n="viz.title">Mô hình 3D</span>
+        <span class="selected" data-i18n="viz.subtitle">chạy theo vị trí thật của 3 trục</span>
       </h2>
       <div class="viz" id="viz"></div>
-      <p class="hint">
+      <p class="hint" data-i18n="viz.hint">
         Kéo chuột trong khung để xoay, bấm đúp để về góc nhìn ban đầu.
         Khay xanh giữ ngang suốt đường đi, tới nơi mới lật đổ về đúng dãy.
         Ô đang chạy tới sáng vàng.
@@ -85,74 +89,62 @@
     </section>
     <section class="panel panel--control">
       <h2 class="panel__title">
-        Chu trình
-        <span class="selected" id="selected-slot">chưa chọn khay</span>
+        <span data-i18n="cycle.title">Chu trình</span>
+        <span class="selected" id="selected-slot" data-i18n="cycle.noSlot">chưa chọn khay</span>
       </h2>
 
-      <!-- ------------------------------------------------ đang ở đâu -->
       <div class="statecard" id="statecard" data-state="idle">
         <div class="statecard__row">
-          <span class="statecard__label">Đang ở</span>
+          <span class="statecard__label" data-i18n="state.where">Đang ở</span>
           <b class="statecard__where" id="state-where">—</b>
         </div>
         <div class="statecard__row">
-          <span class="statecard__label">Giai đoạn</span>
+          <span class="statecard__label" data-i18n="state.stage">Giai đoạn</span>
           <b class="statecard__stage" id="state-stage">—</b>
         </div>
         <div class="statecard__row">
-          <span class="statecard__label">Lệnh cuối</span>
+          <span class="statecard__label" data-i18n="state.last">Lệnh cuối</span>
           <b id="state-result">—</b>
         </div>
       </div>
 
       <ol class="stages" id="stages">
-        <li data-stage="0">Chạy ngang</li>
-        <li data-stage="1">Lên xuống</li>
-        <li data-stage="2">Dừng ổn định</li>
-        <li data-stage="3">Lật đổ</li>
-        <li data-stage="4">Về chỗ chờ</li>
+        <li data-stage="0" data-i18n="stage.0">Chạy ngang</li>
+        <li data-stage="1" data-i18n="stage.1">Lên xuống</li>
+        <li data-stage="2" data-i18n="stage.2">Dừng ổn định</li>
+        <li data-stage="3" data-i18n="stage.3">Lật đổ</li>
+        <li data-stage="4" data-i18n="stage.4">Về HOME</li>
       </ol>
 
-      <div class="alert is-hidden" id="alert"></div>
-
-      <hr class="sep">
-
-      <button type="button" class="btn btn--primary btn--big" data-action="run" disabled>
-        Chạy tự động
-        <small>tới khay → lật đổ → về chỗ chờ</small>
-      </button>
-
       <div class="btn-grid" style="margin-top:10px">
-        <button type="button" class="btn" data-action="home">Lấy gốc tọa độ</button>
-        <button type="button" class="btn" data-action="park">Về chỗ chờ</button>
-        <button type="button" class="btn" data-action="reset">Xóa lỗi</button>
-        <button type="button" class="btn btn--danger" data-action="stop">DỪNG</button>
+        <button type="button" class="btn btn--primary btn--span" data-action="run" data-i18n="btn.run" disabled>Chạy tự động</button>
+        <button type="button" class="btn" data-action="park" data-i18n="btn.park">Về HOME</button>
+        <button type="button" class="btn" data-action="park-here" data-i18n="btn.parkHere">Đặt HOME tại đây</button>
+        <button type="button" class="btn" data-action="home" data-i18n="btn.home">Về LIMIT</button>
+        <button type="button" class="btn" data-action="reset" data-i18n="btn.reset">Xóa lỗi</button>
       </div>
 
-      <hr class="sep">
+      <p class="hint" data-i18n-html="btn.homeHint"></p>
 
-      <h3 class="panel__subtitle">Tồn kho khay đang chọn</h3>
-      <div class="btn-grid btn-grid--3">
-        <button type="button" class="btn" data-action="item-add" disabled>+1 vật</button>
-        <button type="button" class="btn" data-action="item-remove" disabled>−1 vật</button>
-        <button type="button" class="btn btn--warn" data-action="item-clear" disabled>Đổ hết</button>
-      </div>
-    </section>
-
-
-    <section class="panel panel--log">
-      <h2 class="panel__title">Nhật ký</h2>
-      <ul class="log" id="log"></ul>
+      <button type="button" class="btn btn--danger btn--stop" data-action="stop" data-i18n="btn.stop">DỪNG</button>
     </section>
 
   </main>
 
-  <!-- ================================================================ CÀI ĐẶT -->
+  <!-- ================================================================ LOG -->
+  <main class="layout layout--log is-hidden" data-panel="log">
+    <section class="panel panel--log">
+      <h2 class="panel__title" data-i18n="log.title">Nhật ký</h2>
+      <ul class="log" id="log"></ul>
+    </section>
+  </main>
+
+  <!-- ================================================================ SETTINGS -->
   <main class="layout layout--config is-hidden" data-panel="config">
 
     <section class="panel panel--geometry">
-      <h2 class="panel__title">Kích thước giàn khay</h2>
-      <p class="hint hint--top">
+      <h2 class="panel__title" data-i18n="cfg.title">Kích thước giàn khay</h2>
+      <p class="hint hint--top" data-i18n-html="cfg.intro">
         Chỉ khai kích thước <b>một cái rổ</b> và hành trình hai trục.
         Số rổ xếp được, độ cao từng hàng và tọa độ từng rổ đều do server tính ra,
         rồi ghi thẳng xuống bảng trong PLC. Không gõ tay tọa độ, không teach từng khay.
@@ -160,157 +152,163 @@
 
       <form class="grid-form" id="geometry-form">
         <fieldset class="grid-form__group">
-          <legend>Cái rổ — đổi mấy số này là cả bố cục xếp lại</legend>
-          <label>Dài, dọc trục X
+          <legend data-i18n="grp.basket">Cái rổ — đổi mấy số này là cả bố cục xếp lại</legend>
+          <label><span data-i18n="fld.basket_length">Dài, dọc trục X</span>
             <input type="number" step="0.1" name="basket_length" required></label>
-          <label>Sâu, hướng ra ngoài
+          <label><span data-i18n="fld.basket_depth">Sâu, hướng ra ngoài</span>
             <input type="number" step="0.1" name="basket_depth" required></label>
-          <label>Cao thành rổ
+          <label><span data-i18n="fld.basket_height">Cao thành rổ</span>
             <input type="number" step="0.1" name="basket_height" required></label>
-          <label>Khe hở tối thiểu giữa 2 rổ
+          <label><span data-i18n="fld.basket_gap">Khe hở tối thiểu giữa 2 rổ</span>
             <input type="number" step="0.1" name="basket_gap" required></label>
         </fieldset>
 
         <fieldset class="grid-form__group">
-          <legend>Giàn rổ đặt ở đâu</legend>
-          <label>Tâm rổ cột đầu, X
+          <legend data-i18n="grp.rack">Giàn rổ đặt ở đâu</legend>
+          <label><span data-i18n="fld.x_first">Tâm rổ cột đầu, X</span>
             <input type="number" step="0.1" name="x_first" required></label>
-          <label>Miệng rổ hàng dưới cùng, Z
+          <label><span data-i18n="fld.z_first">Miệng rổ hàng dưới cùng, Z</span>
             <input type="number" step="0.1" name="z_first" required></label>
-          <label>Ray → mép trong rổ
+          <label><span data-i18n="fld.rack_offset">Ray → mép trong rổ</span>
             <input type="number" step="0.1" name="rack_offset" required></label>
         </fieldset>
 
         <fieldset class="grid-form__group">
-          <legend>Khay đựng trên đầu công tác</legend>
-          <label>Dài, dọc trục X
+          <legend data-i18n="grp.tray">Khay đựng trên đầu công tác</legend>
+          <label><span data-i18n="fld.tray_length">Dài, dọc trục X</span>
             <input type="number" step="0.1" name="tray_length" required></label>
-          <label>Rộng, theo chiều lật
+          <label><span data-i18n="fld.tray_width">Rộng, theo chiều lật</span>
             <input type="number" step="0.1" name="tray_width" required></label>
-          <label>Đứng cao hơn miệng rổ
+          <label><span data-i18n="fld.drop_lift">Đứng cao hơn miệng rổ</span>
             <input type="number" step="0.1" name="drop_lift" required></label>
         </fieldset>
 
         <fieldset class="grid-form__group">
-          <legend>Ba trục chạy tới đâu</legend>
-          <label>X: hành trình ngang, mm
+          <legend data-i18n="grp.travel">Ba trục chạy tới đâu</legend>
+          <label><span data-i18n="fld.x_travel">X: hành trình ngang, mm</span>
             <input type="number" step="1" name="x_travel" required></label>
-          <label>Z: hành trình lên xuống, mm
+          <label><span data-i18n="fld.z_travel">Z: hành trình lên xuống, mm</span>
             <input type="number" step="1" name="z_travel" required></label>
-          <label>Y: góc lật khi đổ, độ
+          <label><span data-i18n="fld.tilt_angle">Y: góc lật khi đổ, độ</span>
             <input type="number" step="1" name="tilt_angle" required></label>
-          <p class="hint hint--span">
-            Góc lật phải nhỏ hơn giới hạn <b id="y-limit-note">±70°</b> của
+          <p class="hint hint--span" id="tilt-hint">
+            Góc lật phải nhỏ hơn giới hạn ±70° của
             <code>Axis_Y</code> — sửa giới hạn ở nhóm thông số cơ khí bên dưới.
           </p>
         </fieldset>
 
         <fieldset class="grid-form__group">
-          <legend>Chạy nhanh chậm — đẩy thẳng xuống PLC, không phải mở TIA</legend>
-          <label>X: tốc độ ngang, mm/s
+          <legend data-i18n="grp.speed">Chạy nhanh chậm — đẩy thẳng xuống PLC, không phải mở TIA</legend>
+          <label><span data-i18n="fld.vel_x">X: tốc độ ngang, mm/s</span>
             <input type="number" step="1" name="vel_x" required></label>
-          <label>Z: tốc độ lên xuống, mm/s
+          <label><span data-i18n="fld.vel_z">Z: tốc độ lên xuống, mm/s</span>
             <input type="number" step="1" name="vel_z" required></label>
-          <label>Y: tốc độ lật, độ/s
+          <label><span data-i18n="fld.tilt_vel">Y: tốc độ lật, độ/s</span>
             <input type="number" step="1" name="tilt_vel" required></label>
-          <p class="hint hint--span">
-            Ba ô TỐC ĐỘ ở trên chỉnh được tới <b id="vel-limit-note">—</b> — quy đổi từ
-            <b>20 000 xung/s</b>, là tốc độ cao nhất động cơ còn kéo nổi (đo bằng tay,
-            chia cho số xung mỗi mm ở nhóm thông số cơ khí bên dưới).
-            Đặt cao hơn thì trục báo lỗi <code>16#8402</code> và máy đứng im tại chỗ.
-          </p>
-          <label>Dừng ổn định tại rổ, ms
+          <label><span data-i18n="fld.dwell_ms">Dừng ổn định tại rổ, ms</span>
             <input type="number" step="50" name="dwell_ms" required></label>
-          <label>Giữ ở góc lật, ms
+          <label><span data-i18n="fld.tilt_hold_ms">Giữ ở góc lật, ms</span>
             <input type="number" step="50" name="tilt_hold_ms" required></label>
-          <label>Số lần lật mỗi chu trình
+          <label><span data-i18n="fld.tilt_count">Số lần lật mỗi chu trình</span>
             <input type="number" step="1" min="0" name="tilt_count" required></label>
         </fieldset>
 
+        <!-- HOME khong go tay nua: jog toi cho ung y roi bam "Dat HOME tai day"
+             ben tab Van hanh. Ba o van phai o lai va chi an di - readGeometryForm()
+             gom form bang FormData, thieu park_* la server lay mac dinh 5/0/5 va
+             ghi de mat cho HOME vua dat. -->
         <fieldset class="grid-form__group">
-          <legend>Vị trí chờ — nơi máy đứng giữa hai chu trình, chỗ gắn cảm biến</legend>
-          <label style="display:none">X ngang, mm <input type="number" step="0.1" name="park_x" required></label>
-          <label style="display:none">Z cao, mm <input type="number" step="0.1" name="park_z" required></label>
-          <label style="display:none">Y góc lật, độ <input type="number" step="0.1" name="park_y" required></label>
-          <label class="chk"><span class="switch"><input type="checkbox" name="auto_home"><span class="slider"></span></span> Tự HOME khi bật điện (cúp điện bật lại tự về HOME)</label>
+          <legend data-i18n="grp.park">Vị trí chờ — nơi máy đứng giữa hai chu trình, chỗ gắn cảm biến</legend>
+          <label style="display:none"><span data-i18n="fld.park_x">X ngang, mm</span> <input type="number" step="0.1" name="park_x" required></label>
+          <label style="display:none"><span data-i18n="fld.park_z">Z cao, mm</span> <input type="number" step="0.1" name="park_z" required></label>
+          <label style="display:none"><span data-i18n="fld.park_y">Y góc lật, độ</span> <input type="number" step="0.1" name="park_y" required></label>
         </fieldset>
 
         <fieldset class="grid-form__group">
-          <legend>Thông số cơ khí — phải nhập trùng với Technology Object trong TIA</legend>
-          <label>X: xung/vòng <input type="number" name="x_pulses_per_rev" required></label>
-          <label>X: mm/vòng <input type="number" step="0.01" name="x_mm_per_rev" required></label>
-          <label>Z: xung/vòng <input type="number" name="z_pulses_per_rev" required></label>
-          <label>Z: mm/vòng <input type="number" step="0.01" name="z_mm_per_rev" required></label>
-          <label>Y: xung/vòng <input type="number" name="y_pulses_per_rev" required></label>
-          <label>Y: độ/vòng <input type="number" step="0.01" name="y_deg_per_rev" required></label>
-          <label>Y: giới hạn phần mềm, ±độ
+          <legend data-i18n="grp.mech">Thông số cơ khí — phải nhập trùng với Technology Object trong TIA</legend>
+          <label><span data-i18n="fld.x_pulses_per_rev">X: xung/vòng</span> <input type="number" name="x_pulses_per_rev" required></label>
+          <label><span data-i18n="fld.x_mm_per_rev">X: mm/vòng</span> <input type="number" step="0.01" name="x_mm_per_rev" required></label>
+          <label><span data-i18n="fld.z_pulses_per_rev">Z: xung/vòng</span> <input type="number" name="z_pulses_per_rev" required></label>
+          <label><span data-i18n="fld.z_mm_per_rev">Z: mm/vòng</span> <input type="number" step="0.01" name="z_mm_per_rev" required></label>
+          <label><span data-i18n="fld.y_pulses_per_rev">Y: xung/vòng</span> <input type="number" name="y_pulses_per_rev" required></label>
+          <label><span data-i18n="fld.y_deg_per_rev">Y: độ/vòng</span> <input type="number" step="0.01" name="y_deg_per_rev" required></label>
+          <label><span data-i18n="fld.y_max_angle">Y: giới hạn phần mềm, ±độ</span>
             <input type="number" step="1" name="y_max_angle" required></label>
         </fieldset>
 
-        <div class="grid-form__actions">
-          <button type="submit" class="btn btn--primary">Lưu cấu hình</button>
-          <button type="button" class="btn btn--warn" data-action="push-table">
-            Đẩy tọa độ xuống PLC
-          </button>
+        <div class="grid-form__actions grid-form__actions--save">
+          <p class="hint" data-i18n="cfg.saveHint">Bấm Lưu là xong: server ghi cấu hình, tính lại bảng tọa độ rồi tự đồng bộ xuống máy. Không phải bấm thêm gì.</p>
+          <button type="submit" class="btn btn--primary btn--big" data-i18n="cfg.save">Lưu cấu hình</button>
+          <div class="sync-banner is-hidden" id="sync-banner"></div>
+          <div class="sync-again">
+            <span class="hint" data-i18n="cfg.pushAgainHint">Đồng bộ tự động thất bại (máy đang chạy hoặc mất kết nối), hoặc vừa nạp lại khối trong TIA:</span>
+            <button type="button" class="btn btn--link" data-action="push-table" data-i18n="cfg.pushAgain">Đồng bộ lại</button>
+          </div>
         </div>
       </form>
     </section>
 
     <section class="panel panel--derived">
-      <h2 class="panel__title">Quy đổi — kiểm tra chéo với TIA</h2>
+      <h2 class="panel__title" data-i18n="derived.title">Quy đổi — kiểm tra chéo với TIA</h2>
       <ul class="derived" id="derived"></ul>
       <ul class="problems" id="problems"></ul>
     </section>
 
     <section class="panel panel--manual">
       <h2 class="panel__title">
-        Chạy tay — chỉ dùng khi căn chỉnh máy
-        <button type="button" class="btn btn--warn btn--slim" data-action="reset-stock">
+        <span data-i18n="manual.title">Chạy tay — chỉ dùng khi căn chỉnh máy</span>
+        <button type="button" class="btn btn--warn btn--slim" data-action="reset-stock" data-i18n="manual.wipeStock">
           Xóa toàn bộ tồn kho
         </button>
       </h2>
-      <p class="hint hint--top">
+      <p class="hint hint--top" data-i18n="manual.note">
         Mấy nút này bỏ qua chu trình tự động. Dùng để dò tọa độ và kiểm tra cơ cấu,
         không dùng lúc sản xuất.
       </p>
 
       <div class="btn-grid btn-grid--3">
-        <button type="button" class="btn" data-action="goto" disabled>Chỉ tới khay</button>
-        <button type="button" class="btn" data-action="tilt" disabled>Chỉ lật</button>
-        <button type="button" class="btn btn--warn" data-action="teach" disabled>
+        <button type="button" class="btn" data-action="goto" data-i18n="manual.goto" disabled>Chỉ tới khay</button>
+        <button type="button" class="btn" data-action="tilt" data-i18n="manual.tilt" disabled>Chỉ lật</button>
+        <button type="button" class="btn btn--warn" data-action="teach" data-i18n="manual.teach" disabled>
           Teach vị trí
         </button>
       </div>
-      <p class="hint" id="manual-slot-hint">Chọn khay bên tab Vận hành trước.</p>
+      <p class="hint" id="manual-slot-hint" data-i18n="manual.slotHintNone">Chọn khay bên tab Vận hành trước.</p>
 
-      <!-- Hai form nam chung mot hang khi con cho, khong thi tu xuong dong. -->
+      <!-- The two forms share a row while there is space, then wrap. -->
       <div class="move-row">
         <form class="move-form" id="move-form">
-          <label>X ngang <input type="number" step="0.1" name="x" value="0" required></label>
-          <label>Z cao <input type="number" step="0.1" name="z" value="0" required></label>
-          <button type="submit" class="btn">Đi tới</button>
+          <label><span data-i18n="manual.colX">X ngang</span> <input type="number" step="0.1" name="x" value="0" required></label>
+          <label><span data-i18n="manual.colZ">Z cao</span> <input type="number" step="0.1" name="z" value="0" required></label>
+          <button type="submit" class="btn" data-i18n="manual.goTo">Đi tới</button>
         </form>
 
         <form class="move-form" id="tilt-form">
-          <label>Y góc lật <input type="number" step="1" name="angle" value="0" required></label>
-          <button type="submit" class="btn">Lật tới góc</button>
+          <label><span data-i18n="manual.colY">Y góc lật</span> <input type="number" step="1" name="angle" value="0" required></label>
+          <button type="submit" class="btn" data-i18n="manual.tiltTo">Lật tới góc</button>
         </form>
       </div>
 
     </section>
 
     <section class="panel panel--jog">
-      <h2 class="panel__title">Jog tay <span class="selected">giữ để chạy, PLC tự cắt sau 5 giây</span></h2>
+      <h2 class="panel__title"><span data-i18n="jog.title">Jog tay</span> <span class="selected" data-i18n="jog.subtitle">giữ là chạy, thả ra mới dừng</span></h2>
+      <p class="hint"><span data-i18n-html="jog.speedNote"></span> <b id="jog-speed-note">—</b>.
+        <span data-i18n-html="jog.speedNoteTail"></span></p>
       <div class="jogpad">
-        <button type="button" class="jog" data-jog="z_pos" title="lên">▲</button>
-        <button type="button" class="jog" data-jog="x_neg" title="sang trái">◀</button>
-        <button type="button" class="jog" data-jog="x_pos" title="sang phải">▶</button>
-        <button type="button" class="jog" data-jog="z_neg" title="xuống">▼</button>
+        <button type="button" class="jog" data-jog="z_pos" data-i18n-title="jog.up" title="lên">▲</button>
+        <button type="button" class="jog" data-jog="x_neg" data-i18n-title="jog.left" title="sang trái">◀</button>
+        <button type="button" class="jog" data-jog="x_pos" data-i18n-title="jog.right" title="sang phải">▶</button>
+        <button type="button" class="jog" data-jog="z_neg" data-i18n-title="jog.down" title="xuống">▼</button>
       </div>
       <div class="jogpad jogpad--y">
-        <button type="button" class="jog" data-jog="y_neg">↺ lật trái</button>
-        <button type="button" class="jog" data-jog="y_pos">lật phải ↻</button>
+        <button type="button" class="jog" data-jog="y_neg" data-i18n="jog.tipLeft">↺ lật trái</button>
+        <button type="button" class="jog" data-jog="y_pos" data-i18n="jog.tipRight">lật phải ↻</button>
       </div>
+      <p class="hint">
+        <span data-i18n="sensor.label">Cảm biến:</span> <b id="sensor-row">—</b><br>
+        <span data-i18n-html="sensor.hint"></span>
+      </p>
     </section>
 
   </main>

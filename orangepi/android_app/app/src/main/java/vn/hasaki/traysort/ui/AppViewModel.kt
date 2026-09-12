@@ -19,8 +19,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import vn.hasaki.traysort.BuildConfig
 import vn.hasaki.traysort.core.Prefs
+import vn.hasaki.traysort.core.Lang
+import vn.hasaki.traysort.data.OrderDetail
 import vn.hasaki.traysort.core.ThemeMode
 import vn.hasaki.traysort.data.ApiException
+import vn.hasaki.traysort.data.Calibration
 import vn.hasaki.traysort.data.GeometryMap
 import vn.hasaki.traysort.data.JogBits
 import vn.hasaki.traysort.data.LayoutPlan
@@ -38,10 +41,25 @@ enum class LogLevel { INFO, OK, WARN, ERROR }
 
 data class LogEntry(val time: String, val text: String, val level: LogLevel)
 
+// Mot lan chay thu de hieu chinh: truc nao, dung o dau truoc khi chay, va da
+// bao chay toi dau.
+//
+// Giu ca diem XUAT PHAT chu khong chi cai dich: lenh chay la toa do tuyet doi,
+// nhung cai dem duoc bang thuoc la QUANG DUONG. Truc dang o 10 ma bao di toi 60
+// thi no chi chay 50 - lay thang 60 lam so ra lenh la ti le tinh ra sai ngay.
+data class CalTest(val axis: String, val from: Double, val target: Double) {
+    val commanded: Double get() = target - from
+}
+
 data class UiState(
     val bootstrapped: Boolean = false,
     val serverUrl: String = "",
     val theme: ThemeMode = ThemeMode.SYSTEM,
+    val lang: Lang = Lang.VI,
+    val order: OrderDetail? = null,
+    // Ket qua lan Luu cau hinh gan nhat: da day xuong PLC duoc chua.
+    val pushOk: Boolean? = null,
+    val pushNote: String? = null,
     val linked: Boolean = false,
     val snapshot: Snapshot = Snapshot(),
     val slots: List<Slot> = emptyList(),
@@ -50,6 +68,11 @@ data class UiState(
     val plan: LayoutPlan = LayoutPlan(),
     val derived: List<Pair<String, String>> = emptyList(),
     val problems: List<String> = emptyList(),
+    val speedWarnings: List<String> = emptyList(),
+    // Hieu chinh truc: lan chay thu gan nhat, va ket qua tinh nguoc ra tu no.
+    val calTest: CalTest? = null,
+    val calibration: Calibration? = null,
+    val calApplied: Boolean = false,
     val selectedSlot: Int? = null,
     val running: String? = null,
     val jog: JogBits = JogBits(),
@@ -85,6 +108,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     init {
         viewModelScope.launch {
             prefs.theme.collect { mode -> _state.update { it.copy(theme = mode) } }
+        }
+        viewModelScope.launch {
+            prefs.lang.collect { value -> _state.update { it.copy(lang = value) } }
         }
         viewModelScope.launch {
             repo.serverUrl.collect { url ->
@@ -174,6 +200,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     plan = event.payload.layout,
                     derived = event.payload.derivedText(),
                     problems = event.payload.problems,
+                    speedWarnings = event.payload.speedWarnings,
                 )
             }
 
@@ -215,10 +242,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _alerts.tryEmit(text)
     }
 
-    fun selectSlot(slot: Int?) = _state.update { it.copy(selectedSlot = slot) }
+    fun selectSlot(slot: Int?) {
+        _state.update { it.copy(selectedSlot = slot, order = null) }
+        if (slot == null) return
+        // Ro chua gan don nao thi server tra 404 - khong phai loi, chi la khong
+        // co gi de hien.
+        viewModelScope.launch {
+            val detail = runCatching { repo.api.orderAt(slot).order }.getOrNull()
+            _state.update {
+                if (it.selectedSlot == slot) it.copy(order = detail) else it
+            }
+        }
+    }
 
-    fun home() = command("Lấy gốc tọa độ") { api.home().message }
-    fun park() = command("Về vị trí chờ") { api.park().message }
+    fun home() = command("Về LIMIT (dò cảm biến)") { api.home().message }
+    fun park() = command("Về HOME") { api.park().message }
+    fun parkHere() = command("Đặt HOME tại chỗ đang đứng") { api.parkHere().message }
     fun resetFault() = command("Xóa lỗi") { api.reset().message }
 
     fun runSlot() = withSlot { slot -> command("Chạy tự động khay $slot") { api.runSlot(slot).message } }
@@ -307,8 +346,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /* ====================================================================== cau hinh */
 
+    // Dai bao THANH CONG tu tat sau vai giay - viec da xong thi khong can nam
+    // mai tren man. Dai bao THAT BAI thi giu lai, vi nguoi dung con phai bam
+    // Day lai; tu tat la mat luon thong tin can hanh dong.
+    fun clearPushResult() = _state.update { it.copy(pushOk = null, pushNote = null) }
+
     fun saveGeometry(values: GeometryMap) = command("Lưu cấu hình") {
-        val result = api.saveGeometry(values)
+        _state.update { it.copy(pushOk = null, pushNote = null) }
+        // Goi hong (mat mang, server khong tra loi kip) thi cung phai ra bang do,
+        // khong thi banner tat ngam, nguoi dung khong biet xong hay loi.
+        val result = try {
+            api.saveGeometry(values)
+        } catch (e: Exception) {
+            _state.update { it.copy(pushOk = false, pushNote = networkText(e)) }
+            throw e
+        }
+        _state.update { it.copy(pushOk = result.pushOk, pushNote = result.pushed) }
 
         result.layout.let { plan ->
             log("bố cục mới: ${plan.slots} rổ — ${plan.rows} hàng × ${plan.columns} cột × 2 bên")
@@ -319,7 +372,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             log("bố cục nhỏ lại, rổ $list không còn trong bố cục — nhớ lấy vật ra", LogLevel.WARN)
         }
         result.pushed?.let { pushed ->
-            log(pushed, if (pushed.startsWith("CHƯA")) LogLevel.ERROR else LogLevel.OK)
+            log(pushed, if (result.pushOk == false) LogLevel.ERROR else LogLevel.OK)
         }
         if (result.problems.isNotEmpty()) {
             log("cấu hình có ${result.problems.size} chỗ chưa hợp lý, chưa đẩy xuống PLC", LogLevel.WARN)
@@ -328,6 +381,72 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun pushTable() = command("Đẩy tọa độ xuống PLC") { api.pushTable().message }
+
+    /* ================================================================= hieu chinh */
+
+    // Chay mot doan da biet de lat co do duoc. Ghi lai diem xuat phat NGAY
+    // TRUOC khi ban lenh: doc lai sau khi chay xong thi lay phai vi tri dich,
+    // va quang duong ra 0.
+    fun calibrationTest(axis: String, target: Double) {
+        val status = _state.value.snapshot.status
+        if (status == null) {
+            log("chưa đọc được vị trí trục — kiểm tra kết nối PLC", LogLevel.WARN)
+            return
+        }
+        val from = when (axis) {
+            "x" -> status.x
+            "z" -> status.z
+            else -> status.y
+        }.toDouble()
+
+        val unit = if (axis == "y") "°" else "mm"
+        command("Chạy thử trục ${axis.uppercase()} tới $target$unit") {
+            // Ban nhap cu la cua lan do truoc - de lai thi nguoi dung bam Tinh
+            // thu roi doc phai ket qua cua doan chay khac.
+            _state.update { it.copy(calibration = null, calApplied = false) }
+            val note = when (axis) {
+                "y" -> api.tiltTo(target)
+                "x" -> api.moveTo(target, status.z.toDouble())
+                else -> api.moveTo(status.x.toDouble(), target)
+            }.message
+            _state.update { it.copy(calTest = CalTest(axis, from, target)) }
+            note
+        }
+    }
+
+    fun calibrationPreview(measured: Double) {
+        val test = _state.value.calTest ?: return
+        command("Tính tỉ lệ trục ${test.axis.uppercase()}") {
+            val result = api.calibratePreview(test.axis, test.commanded, measured)
+            _state.update { it.copy(calibration = result, calApplied = false) }
+            if (result.onTarget) "tỉ lệ trục ${test.axis.uppercase()} đang đúng"
+            else "trục ${test.axis.uppercase()} lệch ${result.errorFactor} lần — " +
+                "đề nghị ${result.field} = ${result.proposed.pulsesPerUnit} xung/đơn vị"
+        }
+    }
+
+    fun calibrationApply(measured: Double) {
+        val test = _state.value.calTest ?: return
+        command("Lưu tỉ lệ trục ${test.axis.uppercase()}") {
+            val result = api.calibrateApply(test.axis, test.commanded, measured)
+            _state.update {
+                it.copy(
+                    calibration = result.calibration,
+                    calApplied = true,
+                    pushOk = result.pushOk,
+                    pushNote = result.pushed,
+                )
+            }
+            result.calibration.warnings.forEach { log(it, LogLevel.WARN) }
+            // Cau nay phai vao nhat ky: sua so ben server KHONG lam may chay
+            // khac di, va do dung la cho de tuong da xong.
+            log(result.calibration.tiaNote, LogLevel.WARN)
+            result.pushed
+        }
+    }
+
+    fun clearCalibration() =
+        _state.update { it.copy(calTest = null, calibration = null, calApplied = false) }
 
     /* ======================================================================= cai dat */
 
@@ -339,6 +458,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { prefs.setTheme(mode) }
+
+    fun toggleLang() = viewModelScope.launch {
+        prefs.setLang(if (_state.value.lang == Lang.VI) Lang.EN else Lang.VI)
+    }
 
     fun clearLog() = _state.update { it.copy(log = emptyList()) }
 

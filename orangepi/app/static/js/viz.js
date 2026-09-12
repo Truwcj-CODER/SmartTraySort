@@ -8,8 +8,6 @@ const MARGIN_Y = 80;         // chua cho ray va so doc truc
 const SCALE_MIN = 0.14;
 const SCALE_MAX = 1.10;
 
-const TAG_LIFT = 22;         // nhan so khay treo cao hon mieng ro bao nhieu px
-
 // Kich thuoc ro va mam deu suy ra tu so THAT trong cau hinh, khong dat cung pixel.
 // Nho vay doi buoc khay hay be rong khay tren web la hinh ve doi theo.
 let dim = {};
@@ -80,10 +78,26 @@ function fitScale(container, slots) {
  */
 function buildTag(lines) {
   const node = div('viz3d__tag');
-  const w = Math.max(56, mm(dim.basketLen));
-  node.style.width = `${w}px`;
-  node.style.marginLeft = `${-w / 2}px`;
-  node.style.marginTop = `${-TAG_LIFT}px`;
+  // Nhan phai NAM GON trong mat ro chu khong phu kin no.
+  //
+  // Truoc day chi do theo be ngang ro. Voi may that - ro dai 350mm, hanh trinh
+  // Z 1300mm - ca gian bi thu nho lai vua khung, nen nhan rong dung bang be
+  // ngang ro va che kin mat ro, khong con nhin thay cai gi ben trong.
+  //
+  // Gio chan bang CA HAI chieu roi lay cai nho hon: ro thap thi chu nho theo
+  // chieu cao, ro hep thi nho theo be ngang.
+  // Van can giua diem neo theo ca hai truc (CSS translate(-50%,-50%)) nen nhan
+  // nam giua long ro, giong drawTags cua app.
+  const cellW = mm(dim.basketLen);
+  const cellH = mm(dim.wallH);
+  // KHONG dat width: nhan chi con mot con so nen de no tu co vua noi dung -
+  // dat rong co dinh la lai thanh tam ban che mat ro nhu truoc.
+  //
+  // Con so an theo CAI HOP: ro to thi so to theo, ro nho thi so nho lai. Vi chi
+  // con mot con so nen cho no chiem han nua mat ro van doc thoai mai ma khong
+  // che - khac han hoi con keo theo ma don, luc do phai bop nho moi vua.
+  const font = clamp(Math.min(cellW * 0.26, cellH * 0.32), 8, 24);
+  node.style.fontSize = `${font}px`;
   lines.forEach(([cls, text]) => node.append(div(cls, text)));
   return node;
 }
@@ -116,7 +130,7 @@ function buildRail() {
 /** Tram nap = vi tri cho. Vien dut o goc toa do de doi chieu voi khay. */
 function buildDock() {
   const node = div('viz3d__dock');
-  node.append(div('viz3d__dock-pad'), buildTag([['viz3d__dock-text', 'chỗ chờ']]));
+  node.append(div('viz3d__dock-pad'), buildTag([['viz3d__dock-text', 'HOME']]));
   return place(node, 0, geometry.park_z ?? 0, 0);
 }
 
@@ -153,10 +167,10 @@ function buildSlot(row) {
 
   // Mieng ro o cao do rack_z, long ro thut XUONG duoi mieng dung bang chieu cao thanh.
   node.append(
-    buildTag([
-      ['viz3d__slot-num', row.slot],
-      ['viz3d__slot-sub', row.code || `${row.count}/${row.capacity}`],
-    ]),
+    // Chi so khay. Ma don va so vat da co san tren luoi khay o tren, nhac lai
+    // o day chi lam nhan phinh to che mat ro - ma khoi 3D la de nhin CHO, khong
+    // phai de doc so lieu.
+    buildTag([['viz3d__slot-num', row.slot]]),
     place(buildPad('viz3d__floorplate', len, dep), 0, -dim.wallH, 0, 'rotateX(90deg)'),
     buildWall(len, wall, `translate3d(0, 0, ${dep / 2}px)`),
     buildWall(len, wall, `translate3d(0, 0, ${-dep / 2}px)`),
@@ -177,21 +191,45 @@ function buildGantry() {
   const gantry = div('viz3d__gantry');
 
   const height = `${mm(geometry.z_travel)}px`;
+
+  // Dau cong tac va cot khong co so do that trong cau hinh, nhung cung KHONG
+  // duoc dat cung pixel: o ty le nho (may that cao 1300mm nen scale ~0.23) thanh
+  // ngang 54px con to hon ca cai mam 51px no dang do, nhin nhu thung ra hai ben.
+  //
+  // Suy theo MAM - thu duy nhat o day co so do that. Ba he so duoi lay dung ty le
+  // cu o may nho (mam 165px -> thanh 54px, day 14px, cot 9px) nen hinh ve giu
+  // nguyen dang quen thuoc, chi khac la gio no co gian theo may.
+  const plateLen = mm(dim.plateLen);
+  const headW = Math.max(plateLen * 0.33, 8);
+  const headH = Math.max(headW * 0.26, 3);
+  // Cot truc Z day theo CHINH CHIEU CAO cua no chu khong theo cai mam: cot la
+  // ket cau chiu luc, may cang cao thi cot cang phai to. Lay theo mam thi may
+  // that (cao 1300mm, scale nho) ra cot 2.8px - mong nhu soi chi.
+  const mastW = clamp(mm(geometry.z_travel) * 0.03, 5, 18);
+
   const mastA = div('viz3d__mast');
   const mastB = div('viz3d__mast viz3d__mast--b');
   mastA.style.height = mastB.style.height = height;
   mastA.style.marginTop = mastB.style.marginTop = `-${height}`;
+  [mastA, mastB].forEach((mast) => {
+    mast.style.width = `${mastW}px`;
+    mast.style.marginLeft = `${-mastW / 2}px`;
+  });
 
-  parts.plate = buildPad('viz3d__plate', mm(dim.plateLen), mm(dim.plateDep));
+  parts.plate = buildPad('viz3d__plate', plateLen, mm(dim.plateDep));
   parts.plate.append(buildPad('viz3d__load', mm(dim.plateLen) * 0.42,
                                              mm(dim.plateDep) * 0.42));
 
+  const head = (extra = '') => {
+    const node = div(`viz3d__head${extra}`);
+    node.style.width = `${headW}px`;
+    node.style.height = `${headH}px`;
+    node.style.margin = `${-headH / 2}px 0 0 ${-headW / 2}px`;
+    return node;
+  };
+
   parts.carriage = div('viz3d__carriage');
-  parts.carriage.append(
-    div('viz3d__head'),
-    div('viz3d__head viz3d__head--b'),
-    parts.plate,
-  );
+  parts.carriage.append(head(), head(' viz3d__head--b'), parts.plate);
 
   gantry.append(mastA, mastB, parts.carriage);
   parts.gantry = gantry;
@@ -279,6 +317,19 @@ export function initViz(container, geo, slotRows) {
 }
 
 /** Cap nhat vi tri 3 truc va o dang duoc nham toi. Goi moi lan co trang thai moi. */
+/** To sang cai ro vua bam tren luoi khay, de biet no nam CHO NAO tren gian.
+ *
+ *  Cung mau vang voi is-target, chi nhat hon: ro vua bam thuong chinh la ro may
+ *  sap chay toi, doi mau giua chung thi mat dau cai dang theo doi. Xem ghi chu
+ *  o .viz3d__slot.is-picked trong styles.css.
+ */
+export function markPickedSlot(slot) {
+  if (!root) return;
+  root.querySelectorAll('.viz3d__slot').forEach((node) => {
+    node.classList.toggle('is-picked', Number(node.dataset.slot) === slot && slot > 0);
+  });
+}
+
 export function updateViz(status, targetSlot = null) {
   if (!root || !geometry) return;
 

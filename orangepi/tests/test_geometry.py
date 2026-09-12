@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.geometry import MAX_PLC_SLOTS, MAX_PULSE_HZ, Geometry  # noqa: E402
+from app.geometry import MAX_PLC_SLOTS, Geometry  # noqa: E402
 from app.inventory import (  # noqa: E402
     DEFAULT_CAPACITY,
     SLOT_COUNT,
@@ -183,45 +183,86 @@ class TestGeometry(unittest.TestCase):
             self.g.slot_position(self.g.slot_count + 1)
 
     def test_pulses_and_velocity(self):
-        # 3200 xung/vong, 32 mm/vong -> 100 xung/mm
+        # X: vitme bi Fi32 buoc 32 - 3200 xung/vong, 32 mm/vong -> 100 xung/mm
         self.assertAlmostEqual(self.g.pulses_per_mm("x"), 100.0)
-        # 100 kHz / 100 = 1000 mm/s - tran ly thuyet cua kenh PTO, khong phai dong co
-        self.assertAlmostEqual(self.g.max_velocity("x", 100_000), 1000.0, places=2)
-        # truc lat: 1000 xung/vong, 360 do/vong -> 2.778 xung/do
+        # Tran cua X do driver HBS86H quyet dinh: 30 kHz / 100 = 300 mm/s
+        self.assertAlmostEqual(self.g.max_velocity("x"), 300.0, places=2)
+        # Z keo bang dai dai: 2000 xung/vong, 54 mm/vong -> 37.04 xung/mm
+        self.assertAlmostEqual(self.g.pulses_per_mm("z"), 2000 / 54.0)
+        # 20 kHz / 37.04 = 540 mm/s
+        self.assertAlmostEqual(self.g.max_velocity("z"), 540.0, places=2)
+        # Truc lat quay truc tiep: 1000 xung/vong tren tron mot vong 360 do.
         self.assertAlmostEqual(self.g.pulses_per_degree(), 1000 / 360)
+        # Toc do dang dat cho ca ba truc deu nam duoi tran - khong canh bao gi.
+        self.assertEqual(self.g.speed_warnings(), [])
 
-    # Bo tan so di thi lay MAX_PULSE_HZ - toc do cao nhat dong co con keo noi,
-    # do bang tay o che do phat xung. Day moi la con so quyet dinh.
-    def test_max_velocity_comes_from_the_measured_pulse_rate(self):
-        self.assertEqual(MAX_PULSE_HZ, 20_000.0)
-        # X: 20 000 / 100 xung/mm = 200 mm/s
-        self.assertAlmostEqual(self.g.max_velocity("x"), 200.0, places=2)
-        # Z: 2000 xung/vong, 54 mm/vong -> 37.04 xung/mm -> 540 mm/s
-        self.assertAlmostEqual(self.g.max_velocity("z"), 540.0, places=1)
-        # Y: 20 000 / 2.778 xung/do = 7200 do/s
-        self.assertAlmostEqual(self.g.max_velocity("y"), 7200.0, places=1)
 
-        # Vi buoc thua hon thi cung tan so xung do cho toc do cao hon.
-        thua = Geometry(x_mm_per_rev=64.0)
-        self.assertAlmostEqual(thua.max_velocity("x"), 400.0, places=2)
+class TestCalibration(unittest.TestCase):
+    # A worked geared case, NOT this machine - the Y axis here is direct
+    # drive (360 deg/rev). Kept geared on purpose: the arithmetic only bites
+    # when a reduction hides in the scale, and a 25:1 box declared as
+    # 360 x 25 = 9000 deg/rev instead of 360 / 25 is the classic way to get
+    # it backwards.
+    def setUp(self):
+        self.g = Geometry(y_pulses_per_rev=3200, y_deg_per_rev=9000.0, tilt_vel=200.0)
 
-    # Vuot tran thi truc tu choi lenh chay va may dung tai cho, nen chan tu server.
-    def test_velocity_over_the_axis_ceiling_is_reported(self):
-        self.assertEqual(Geometry(vel_x=200.0).velocity_limits(), [])
+    def test_solves_the_gear_ratio_from_one_measurement(self):
+        # Ti le sai 25^2 = 625 lan, nen bao lat 60 do thi mam nhuc nhich 0.096.
+        out = self.g.calibrate("y", 60.0, 0.096)
+        self.assertAlmostEqual(out["proposed"]["y_deg_per_rev"], 14.4, places=3)
+        self.assertAlmostEqual(out["gear_ratio"], 25.0, places=3)
+        self.assertAlmostEqual(out["error_factor"], 625.0, places=1)
 
-        qua = Geometry(vel_x=300.0)
-        loi = qua.velocity_limits()
-        self.assertEqual(len(loi), 1)
-        self.assertIn("300", loi[0])
-        self.assertIn("200.0", loi[0])
-        self.assertIn("16#8402", loi[0])
-        # problems() phai keo theo, vi write_geometry dua vao no de chan day xuong PLC.
-        self.assertIn(loi[0], qua.problems())
+    def test_a_correct_axis_proposes_no_change(self):
+        # Do dung bang so ra lenh thi ti le dang dung, khong duoc de nghi gi khac.
+        g = Geometry(y_pulses_per_rev=3200, y_deg_per_rev=14.4)
+        out = g.calibrate("y", 60.0, 60.0)
+        self.assertAlmostEqual(out["proposed"]["y_deg_per_rev"], 14.4, places=6)
+        self.assertAlmostEqual(out["error_factor"], 1.0, places=6)
 
-    def test_tilt_velocity_has_the_same_ceiling(self):
-        qua = Geometry(y_pulses_per_rev=100_000, tilt_vel=200.0)
-        self.assertEqual(len(qua.velocity_limits()), 1)
-        self.assertTrue(qua.velocity_limits()[0].startswith("Y:"))
+    def test_correction_lands_on_mm_per_rev_not_pulses(self):
+        # Xung/vong la nut van tren driver, tho ra doc duoc. Cai an la buoc vit.
+        g = Geometry(x_pulses_per_rev=3200, x_mm_per_rev=5.0)
+        out = g.calibrate("x", 100.0, 50.0)
+        self.assertEqual(out["field"], "x_mm_per_rev")
+        self.assertAlmostEqual(out["proposed"]["x_mm_per_rev"], 2.5, places=6)
+        self.assertIsNone(out["gear_ratio"])
+
+    def test_round_trip_through_apply(self):
+        # Hieu chinh xong roi do lai lan nua thi phai khop, khong lech dan.
+        fixed = self.g.replace_axis_scale("y", self.g.calibrate("y", 60.0, 0.096)
+                                          ["proposed"]["y_deg_per_rev"])
+        again = fixed.calibrate("y", 60.0, 60.0)
+        self.assertAlmostEqual(again["proposed"]["y_deg_per_rev"], 14.4, places=3)
+
+    def test_axis_running_backwards_is_not_a_scale_problem(self):
+        with self.assertRaises(ValueError) as caught:
+            self.g.calibrate("y", 60.0, -60.0)
+        self.assertIn("NGƯỢC", str(caught.exception))
+
+    def test_a_dead_axis_is_refused(self):
+        with self.assertRaises(ValueError):
+            self.g.calibrate("y", 60.0, 0.0)
+
+    def test_unknown_axis(self):
+        with self.assertRaises(ValueError):
+            self.g.calibrate("w", 10.0, 10.0)
+
+    def test_fixing_the_scale_exposes_the_speed_ceiling(self):
+        # Ti le sai 625 lan thi tran toc do cung cao gap 625 - sua xong moi lo ra
+        # rang toc do lat dang dat vuot kha nang cua kenh PTO.
+        self.assertEqual(self.g.speed_warnings(), [])
+        out = self.g.calibrate("y", 60.0, 0.096)
+        self.assertTrue(any("tốc độ lật" in w for w in out["warnings"]))
+
+    def test_speed_ceiling_uses_the_pto_table(self):
+        g = Geometry(y_pulses_per_rev=3200, y_deg_per_rev=14.4)
+        self.assertAlmostEqual(g.max_velocity("y"), 20_000 / (3200 / 14.4), places=3)
+
+
+class TestGeometryRoundTrip(unittest.TestCase):
+    def setUp(self):
+        self.g = Geometry()
 
     def test_round_trip_dict(self):
         data = self.g.to_dict()

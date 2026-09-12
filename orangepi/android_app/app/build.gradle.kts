@@ -22,12 +22,12 @@ android {
         applicationId = "vn.hasaki.traysort"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 5
+        versionName = "1.0.4"
 
         // Dia chi goi y luc mo app lan dau. Nguoi dung sua duoc trong Cai dat,
         // nen day chi la cho de khoi phai go tu dau.
-        buildConfigField("String", "DEFAULT_SERVER", "\"http://172.16.10.140:8000\"")
+        buildConfigField("String", "DEFAULT_SERVER", "\"http://172.16.10.169:8000\"")
     }
 
     signingConfigs {
@@ -45,6 +45,9 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // Ban debug chay tren may ao, tro thang toi server pi4 (PLC that).
+            // Van sua duoc trong Cai dat. Xem android_app/README.md muc "May ao".
+            buildConfigField("String", "DEFAULT_SERVER", "\"http://100.117.86.73:8000\"")
         }
         release {
             isMinifyEnabled = true
@@ -104,4 +107,6 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
     implementation(libs.mlkit.barcode)
+    // Sinh ma QR. ML Kit chi DOC duoc ma, khong ve ra duoc.
+    implementation(libs.zxing.core)
 }

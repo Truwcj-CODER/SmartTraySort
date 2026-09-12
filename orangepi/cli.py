@@ -69,9 +69,12 @@ async def main() -> int:
     # so ro do hinh hoc quyet dinh, giong het main.py
     db = Database(settings)
     db.wait_ready(settings.mysql_ready_timeout)
-    service.slot_count = Geometry.from_dict(
+    geometry = Geometry.from_dict(
         ConfigStore(db, "geometry", Geometry().to_dict()).read()
-    ).slot_count
+    )
+    service.slot_count = geometry.slot_count
+    # Cung ti le truc Y nhu server, khong thi cli.py lat mot goc khac han.
+    service.y_scale = geometry.y_scale_for_plc()
     await service.start()
 
     try:

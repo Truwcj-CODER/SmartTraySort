@@ -4,6 +4,8 @@ import asyncio
 import contextlib
 import logging
 
+from dataclasses import replace
+
 from collections.abc import Awaitable, Callable
 
 from ..config import Settings
@@ -16,7 +18,9 @@ from .protocol import (
     CtrlBit,
     Param,
     PlcStatus,
+    RESULT_OK,
     Result,
+    Y_SCALED_PARAMS,
     build_command_frame,
     build_ctrl_frame,
     next_seq,
@@ -38,6 +42,24 @@ class PlcBusyError(RuntimeError):
     pass
 
 
+# Cau nay hien thang len tablet, nguoi van hanh doc - phai noi ro kiem cho nao.
+def _failure_text(command: Command, status: PlcStatus) -> str:
+    # REJECTED voi READY = 0 khong phai loi cua lenh: may dang khong o trang
+    # thai cho phep chay. Bit READY do chuong trinh PLC dat tu tin hieu phan
+    # cung, nen chi sua duoc o tu dien chu khong sua duoc tu server.
+    if status.result == Result.REJECTED and not status.ready:
+        return (
+            f"Lệnh {command.name} bị từ chối: máy chưa sẵn sàng — bit READY "
+            "trong HR10 đang bằng 0. Kiểm tra nút dừng khẩn, nguồn servo và "
+            "contactor lực."
+        )
+
+    head = f"Lệnh {command.name} thất bại: {status.result_text}"
+    if status.step or status.error_id:
+        head += f" (bước {status.step}, ErrorID 0x{status.error_id:04X})"
+    return head
+
+
 class PlcService:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
@@ -54,6 +76,13 @@ class PlcService:
         self._ctrl = CtrlBit.AXES_ENABLE
         # So ro cua bo cuc hien tai. Khong co dinh - cau hinh doi la doi theo.
         self._slot_count = 0        # main.py/cli.py gan lai tu hinh hoc
+        # Pulses the PLC counts per degree of tilt. Axis_Y in TIA is scaled in
+        # pulses, so every angle and angular rate is converted on the way down
+        # and back on the way up: the API, the web and the app all speak degrees
+        # and never see a pulse. 1.0 = an Axis_Y still scaled in degrees, which
+        # is what this server sent before the axis was rescaled - so nothing
+        # changes until main.py / send_layout wires the real scale in.
+        self._y_scale = 1.0        # main.py/routes.send_layout gan lai tu hinh hoc
         self._command_lock = asyncio.Lock()
         self._poller: asyncio.Task | None = None
         self._subscribers: set[asyncio.Queue] = set()
@@ -74,7 +103,7 @@ class PlcService:
         except PlcConnectionError as exc:
             self._online = False
             self._last_error = str(exc)
-            log.warning("chua ket noi duoc PLC luc khoi dong: %s", exc)
+            log.warning("could not connect to PLC at startup: %s", exc)
 
         self._poller = asyncio.create_task(self._poll_loop(), name="plc-poller")
 
@@ -112,7 +141,12 @@ class PlcService:
 
     async def refresh(self) -> PlcStatus:
         regs = await self._transport.read_registers(ADDR_STATUS_BLOCK, SIZE_STATUS_BLOCK)
-        self._status = PlcStatus.from_registers(regs)
+        status = PlcStatus.from_registers(regs)
+        # Axis_Y reports where it is in pulses; nothing above this line wants
+        # to know that. x and z stay put - they are mm on both sides.
+        if self._y_scale != 1.0:
+            status = replace(status, y=round(self._y_up(status.y), 3))
+        self._status = status
         return self._status
 
     def subscribe(self) -> asyncio.Queue:
@@ -143,12 +177,10 @@ class PlcService:
             seq = await self._send(command, slot=slot, x=x, y=y, z=z)
             status = await self._wait_done(seq, timeout or self._timeout_for(command))
 
-        if status.result != Result.OK:
-            raise PlcCommandError(
-                f"lenh {command.name} that bai: {status.result_text} "
-                f"(buoc {status.step}, ErrorID 0x{status.error_id:04X})",
-                status,
-            )
+        # Cham vach gioi han khong phai loi: truc dung lai la dung viec no phai
+        # lam. Bao that bai o day thi nhat ky day chu do trong khi may chay dung.
+        if status.result not in RESULT_OK:
+            raise PlcCommandError(_failure_text(command, status), status)
         return status
 
     async def dispatch(self, command: Command, *, slot: int = 0) -> int:
@@ -186,11 +218,15 @@ class PlcService:
 
     # Lat truc Y toi mot goc cu the. Dung khi can chinh co cau.
     async def tilt_to(self, angle: float) -> PlcStatus:
-        return await self.execute(Command.TILT_TO, y=angle)
+        return await self.execute(Command.TILT_TO, y=self._y_down(angle))
 
     # Ghi toa do 1 khay xuong bang trong PLC.
     #
     # Dau cua tham so y quyet dinh chieu lat, nen gui truc tiep direction vao do.
+    #
+    # KHONG quy doi y o day. O nay cho +1/-1 - mot dau chieu, khong phai mot goc.
+    # Nhan no voi so xung moi do la PLC nhan duoc 8.9 thay vi 1, va bang toa do
+    # sai chieu lat het ca gian.
     async def set_slot(self, slot: int, x: float, z: float, direction: int) -> PlcStatus:
         return await self.execute(
             Command.SET_SLOT,
@@ -201,6 +237,8 @@ class PlcService:
 
     # Ghi mot tham so chay may xuong PLC (toc do, thoi gian dung, goc lat).
     async def set_param(self, param: Param, value: float) -> PlcStatus:
+        if param in Y_SCALED_PARAMS:
+            value = self._y_down(value)
         return await self.execute(Command.SET_PARAM, slot=int(param), x=value, timeout=10.0)
 
     # Bao so ro cua bo cuc hien tai. PLC tu chan moi so ro ngoai khoang do.
@@ -210,8 +248,10 @@ class PlcService:
         return status
 
     # Ghi vi tri cho xuong PLC. Khong phai goc toa do - xem ghi chu trong SCL.
+    # y = goc lat tai vi tri cho, do - quy doi nhu moi goc khac.
     async def set_park(self, x: float, y: float, z: float) -> PlcStatus:
-        return await self.execute(Command.SET_PARK, x=x, y=y, z=z, timeout=10.0)
+        return await self.execute(
+            Command.SET_PARK, x=x, y=self._y_down(y), z=z, timeout=10.0)
 
     # Day ca bang toa do xuong PLC. Tra ve so ro da ghi.
     #
@@ -256,6 +296,25 @@ class PlcService:
     def slot_count(self, count: int) -> None:
         self._slot_count = max(0, int(count))
 
+    @property
+    def y_scale(self) -> float:
+        return self._y_scale
+
+    @y_scale.setter
+    def y_scale(self, pulses_per_degree: float) -> None:
+        scale = float(pulses_per_degree)
+        if scale <= 0:
+            raise ValueError("so xung moi do phai lon hon 0")
+        self._y_scale = scale
+
+    # do -> xung, chieu ghi xuong PLC
+    def _y_down(self, degrees: float) -> float:
+        return float(degrees) * self._y_scale
+
+    # xung -> do, chieu doc trang thai len
+    def _y_up(self, pulses: float) -> float:
+        return float(pulses) / self._y_scale
+
     def _validated_slot(self, slot: int) -> int:
         if not 1 <= slot <= self._slot_count:
             raise ValueError(f"so khay phai trong khoang 1..{self._slot_count}")
@@ -271,7 +330,7 @@ class PlcService:
         self._seq = next_seq(self._seq)
         frame = build_command_frame(command, self._seq, slot=slot, x=x, y=y, z=z, ctrl=self._ctrl)
         await self._transport.write_registers(ADDR_WRITE_BLOCK, frame)
-        log.info("gui lenh %s seq=%s slot=%s", command.name, self._seq, slot)
+        log.info("sent command %s seq=%s slot=%s", command.name, self._seq, slot)
         return self._seq
 
     async def _wait_done(self, seq: int, timeout: float) -> PlcStatus:
@@ -301,14 +360,14 @@ class PlcService:
             try:
                 await self.refresh()
                 if not self._online:
-                    log.info("da ket noi lai duoc PLC")
+                    log.info("reconnected to PLC")
                 self._online = True
                 self._last_error = None
                 if not self._synced:
                     self._start_sync()
             except (PlcConnectionError, ValueError) as exc:
                 if self._online:
-                    log.warning("mat ket noi toi PLC: %s", exc)
+                    log.warning("lost connection to PLC: %s", exc)
                 self._online = False
                 self._last_error = str(exc)
                 # Lan noi lai sau phai day bang mot lan nua: PLC co the vua
@@ -345,7 +404,7 @@ class PlcService:
             # That bai thi danh dau lai de vong poll sau thu tiep.
             self._synced = False
             self._sync_retry_at = asyncio.get_running_loop().time() + 10.0
-            log.warning("day lai bang toa do sau khi noi duoc PLC that bai: %s", exc)
+            log.warning("re-pushing the coordinate table after PLC reconnect failed: %s", exc)
 
     def _broadcast(self) -> None:
         # hang doi giu 1 phan tu: nguoi nhan cham thi bo ban cu, luon lay ban moi nhat

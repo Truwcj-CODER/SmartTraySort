@@ -13,6 +13,13 @@ class TiltRequest(BaseModel):
     angle: float = Field(..., description="Goc lat, do. Duong = phai, am = trai")
 
 
+# Mot lan hieu chinh: bao truc chay bao nhieu, do thuoc duoc bao nhieu.
+class CalibrateRequest(BaseModel):
+    axis: str = Field(..., pattern="^[xyz]$", description="Truc can hieu chinh")
+    commanded: float = Field(..., description="Da ra lenh chay bao nhieu (mm hoac do)")
+    measured: float = Field(..., description="Do duoc thuc te bao nhieu (mm hoac do)")
+
+
 class JogRequest(BaseModel):
     x_pos: bool = False
     x_neg: bool = False
@@ -52,7 +59,6 @@ class GeometryIn(BaseModel):
     tilt_vel: float = Field(200.0, gt=0, description="Toc do lat, do/s")
     tilt_hold_ms: int = Field(1000, ge=0, description="Giu o goc lat, ms")
     tilt_count: int = Field(1, ge=0, description="So lan lat moi chu trinh")
-    auto_home: bool = Field(True, description="Tu HOME khi bat dien")
     vel_x: float = Field(80.0, gt=0, description="Toc do chay ngang, mm/s")
     vel_z: float = Field(60.0, gt=0, description="Toc do len xuong, mm/s")
     dwell_ms: int = Field(1000, ge=0, description="Dung yen tai ro, ms")
@@ -77,12 +83,31 @@ class ItemChange(BaseModel):
     amount: int = Field(1, ge=1)
 
 
+# He tren (Kafka) day danh sach don xuong. Moi don kem cac SKU thuoc don do.
+class OrderIn(BaseModel):
+    order: str = Field(..., min_length=1, description="Ma don hang")
+    skus: list[str] = Field(default_factory=list, description="Cac SKU thuoc don nay")
+
+
+class OrdersIn(BaseModel):
+    orders: list[OrderIn] = Field(..., description="Danh sach don, theo dung thu tu uu tien")
+    reset: bool = Field(True, description="Xoa het gan cu truoc khi gan lo moi")
+
+
 class ScanRequest(BaseModel):
     code: str = Field(..., min_length=1, description="Ma vua quet duoc")
     run: bool = Field(True, description="Quet xong chay may luon hay chi tra ve so khay")
 
 
 # ------------------------------------------------------------------ tra ve
+class OrderOut(BaseModel):
+    order: str
+    slot: int
+    skus: list[str] = []
+    count: int = 0
+    capacity: int = 0
+
+
 class StatusOut(BaseModel):
     online: bool
     endpoint: str

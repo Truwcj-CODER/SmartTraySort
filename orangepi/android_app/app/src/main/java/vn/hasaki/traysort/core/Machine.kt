@@ -19,8 +19,8 @@ val STEPS: Map<Int, Step> = mapOf(
     180 to Step("lật về giữa", 3),
     190 to Step("lật xong", 3),
     195 to Step("đưa trục lật về giữa", 4),
-    200 to Step("nâng hạ về chỗ chờ", 4),
-    210 to Step("chạy ngang về chỗ chờ", 4),
+    200 to Step("nâng hạ về HOME", 4),
+    210 to Step("chạy ngang về HOME", 4),
     220 to Step("hoàn tất chu trình", 4),
     300 to Step("lật tay tới góc đặt", null),
     900 to Step("DỪNG VÌ LỖI", null),
@@ -36,111 +36,166 @@ val RESULT_TEXT: Map<Int, String> = mapOf(
     3 to "bị dừng giữa chừng",
     4 to "lỗi",
     5 to "lệnh không hợp lệ",
+    // Cham vach gioi han: khong phai loi, may lam dung viec cua no. Tach rieng
+    // khoi ma 3 (nut DUNG khan) de nhat ky khong day chu "that bai".
+    6 to "dừng vì chạm vạch giới hạn",
 )
 
-val STAGE_NAMES = listOf("Chạy ngang", "Lên xuống", "Dừng ổn định", "Lật đổ", "Về chỗ chờ")
+val STAGE_NAMES = listOf("Chạy ngang", "Lên xuống", "Dừng ổn định", "Lật đổ", "Về HOME")
 
 /** mm. Lech nho hon nay coi nhu da toi noi - dung de doan dang dung o ro nao. */
 const val POSITION_TOLERANCE = 3.0f
 
 /* ------------------------------------------------------------------ form cau hinh */
 
-data class Field(val key: String, val label: String, val integer: Boolean = false)
-data class FieldGroup(val legend: String, val note: String? = null, val fields: List<Field>)
+/* ------------------------------------------------------------------ form cau hinh */
 
-// Cung thu tu, cung cau chu voi app/templates/index.html. Server them mot thong
-// so moi thi them mot dong o day la form tu moc them o nhap.
-val GEOMETRY_GROUPS: List<FieldGroup> = listOf(
+// Nhan song ngu. Giu thang trong day chu khong tach sang S: nhan gan chat voi
+// tung truong, tach ra hai file thi sua mot cai phai nho sua ca hai.
+data class Field(
+    val key: String,
+    val vi: String,
+    val en: String,
+    val integer: Boolean = false,
+    // Khong cho sua, chi hien thanh dong chu. Van nam trong danh sach vi con
+    // phai gui len server: bo han khoi GEOMETRY_GROUPS thi payload thieu o do,
+    // va server lay mac dinh cua schema - ghi de mat so that ma khong ai biet.
+    val readOnly: Boolean = false,
+) {
+    fun label(lang: Lang): String = if (lang == Lang.VI) vi else en
+}
+
+data class FieldGroup(
+    val vi: String,
+    val en: String,
+    val fields: List<Field>,
+    val noteVi: String? = null,
+    val noteEn: String? = null,
+    // >0: xep theo COT, moi cot bay nhieu o. Dung khi cac o di theo tung cum co
+    // nghia - vi du moi truc mot cot: X tren X duoi, roi Z, roi Y.
+    val stackBy: Int = 0,
+) {
+    fun legend(lang: Lang): String = if (lang == Lang.VI) vi else en
+    fun note(lang: Lang): String? = if (lang == Lang.VI) noteVi else noteEn
+}
+
+// Xep theo do "dinh lien" giam dan: thong so truyen dong gan voi chinh dong co
+// va hop so, chi doi khi thay thiet bi; con vi tri cho thi lap xong van co the
+// doi. Cai nao it doi nhat len truoc.
+val SETUP_GROUPS: List<FieldGroup> = listOf(
     FieldGroup(
-        "Cái rổ",
-        "Đổi mấy số này là cả bố cục xếp lại.",
+        "Thông số truyền động", "Drive parameters",
         listOf(
-            Field("basket_length", "Dài, dọc trục X (mm)"),
-            Field("basket_depth", "Sâu, hướng ra ngoài (mm)"),
-            Field("basket_height", "Cao thành rổ (mm)"),
-            Field("basket_gap", "Khe hở tối thiểu giữa 2 rổ (mm)"),
+            Field("x_pulses_per_rev", "X: xung/vòng", "X: pulses/rev", integer = true),
+            Field("x_mm_per_rev", "X: mm/vòng", "X: mm/rev"),
+            Field("z_pulses_per_rev", "Z: xung/vòng", "Z: pulses/rev", integer = true),
+            Field("z_mm_per_rev", "Z: mm/vòng", "Z: mm/rev"),
+            Field("y_pulses_per_rev", "Y: xung/vòng", "Y: pulses/rev", integer = true),
+            Field("y_deg_per_rev", "Y: độ/vòng", "Y: degrees/rev"),
+        ),
+        noteVi = "Mỗi trục một cột. Phải trùng với Technology Object trong TIA — " +
+            "server không ghi được xuống PLC.",
+        noteEn = "One column per axis. Must match the Technology Object in TIA — " +
+            "the server cannot write these to the PLC.",
+        stackBy = 2,
+    ),
+    FieldGroup(
+        "Vị trí giàn rổ", "Rack position",
+        listOf(
+            Field("x_first", "X tâm rổ cột đầu (mm)", "X of first column centre (mm)"),
+            Field("z_first", "Z miệng rổ hàng dưới (mm)", "Z of bottom row mouth (mm)"),
+            Field("rack_offset", "Ray → mép trong rổ (mm)", "Rail to inner basket edge (mm)"),
         ),
     ),
     FieldGroup(
-        "Giàn rổ đặt ở đâu",
-        null,
+        "Khay đầu công tác", "Head tray",
         listOf(
-            Field("x_first", "Tâm rổ cột đầu, X (mm)"),
-            Field("z_first", "Miệng rổ hàng dưới cùng, Z (mm)"),
-            Field("rack_offset", "Ray → mép trong rổ (mm)"),
+            Field("tray_length", "Chiều dài, theo X (mm)", "Length, along X (mm)"),
+            Field("tray_width", "Chiều rộng, theo chiều lật (mm)", "Width, along the tipping axis (mm)"),
+            Field("drop_lift", "Nâng cao hơn miệng rổ (mm)", "Lift above the basket mouth (mm)"),
         ),
     ),
     FieldGroup(
-        "Khay đựng trên đầu công tác",
-        null,
+        "Hành trình ba trục", "Axis travel",
         listOf(
-            Field("tray_length", "Dài, dọc trục X (mm)"),
-            Field("tray_width", "Rộng, theo chiều lật (mm)"),
-            Field("drop_lift", "Đứng cao hơn miệng rổ (mm)"),
+            Field("x_travel", "X: hành trình ngang (mm)", "X: horizontal travel (mm)"),
+            Field("z_travel", "Z: hành trình lên xuống (mm)", "Z: vertical travel (mm)"),
+            Field("tilt_angle", "Y: góc lật khi đổ (°)", "Y: tipping angle (°)"),
+            Field("y_max_angle", "Y: giới hạn phần mềm (±°)", "Y: software limit (±°)", readOnly = true),
         ),
+        noteVi = "Góc lật khi đổ không được vượt giới hạn phần mềm của Axis_Y.",
+        noteEn = "The tipping angle must stay under the Axis_Y software limit.",
     ),
     FieldGroup(
-        "Ba trục chạy tới đâu",
-        "Góc lật phải nhỏ hơn giới hạn phần mềm của Axis_Y ở nhóm cuối.",
+        "Vị trí chờ", "Park position",
         listOf(
-            Field("x_travel", "X: hành trình ngang (mm)"),
-            Field("z_travel", "Z: hành trình lên xuống (mm)"),
-            Field("tilt_angle", "Y: góc lật khi đổ (độ)"),
+            Field("park_x", "X ngang (mm)", "X horizontal (mm)"),
+            Field("park_z", "Z cao (mm)", "Z vertical (mm)"),
+            Field("park_y", "Y góc lật (°)", "Y tipping angle (°)"),
         ),
-    ),
-    FieldGroup(
-        "Chạy nhanh chậm",
-        "Đẩy thẳng xuống PLC, không phải mở TIA.",
-        listOf(
-            Field("vel_x", "X: tốc độ ngang (mm/s)"),
-            Field("vel_z", "Z: tốc độ lên xuống (mm/s)"),
-            Field("tilt_vel", "Y: tốc độ lật (độ/s)"),
-            Field("dwell_ms", "Dừng ổn định tại rổ (ms)", integer = true),
-            Field("tilt_hold_ms", "Giữ ở góc lật (ms)", integer = true),
-            Field("tilt_count", "Số lần lật mỗi chu trình", integer = true),
-        ),
-    ),
-    FieldGroup(
-        "Vị trí chờ",
-        "Nơi máy đứng giữa hai chu trình, chỗ gắn cảm biến.",
-        listOf(
-            Field("park_x", "X ngang (mm)"),
-            Field("park_z", "Z cao (mm)"),
-            Field("park_y", "Y góc lật (độ)"),
-        ),
-    ),
-    FieldGroup(
-        "Thông số cơ khí",
-        "Phải nhập trùng với Technology Object trong TIA — server không ghi được xuống PLC.",
-        listOf(
-            Field("x_pulses_per_rev", "X: xung/vòng", integer = true),
-            Field("x_mm_per_rev", "X: mm/vòng"),
-            Field("z_pulses_per_rev", "Z: xung/vòng", integer = true),
-            Field("z_mm_per_rev", "Z: mm/vòng"),
-            Field("y_pulses_per_rev", "Y: xung/vòng", integer = true),
-            Field("y_deg_per_rev", "Y: độ/vòng"),
-            Field("y_max_angle", "Y: giới hạn phần mềm (±độ)"),
-        ),
+        noteVi = "Nơi máy đứng giữa hai chu trình, chỗ gắn cảm biến.",
+        noteEn = "Where the machine rests between cycles, where the sensors sit.",
     ),
 )
 
-val DERIVED_LABELS: Map<String, String> = mapOf(
-    "so_ro" to "Số rổ máy xếp được",
-    "buoc_ngang_mm" to "Bước ngang giữa 2 rổ (mm)",
-    "khe_ho_that_mm" to "Khe hở thật sau khi trải đều (mm)",
-    "buoc_hang_mm" to "Bước giữa 2 hàng (mm)",
-    "x_pulses_per_mm" to "X — xung mỗi mm",
-    "z_pulses_per_mm" to "Z — xung mỗi mm",
-    "y_pulses_per_degree" to "Y — xung mỗi độ",
-    "x_pulses_full_travel" to "X — xung hết hành trình",
-    "z_pulses_full_travel" to "Z — xung hết hành trình",
-    "y_pulses_full_range" to "Y — xung hết góc lật",
-    "x_max_velocity_mm_s" to "X — tốc độ trần (mm/s)",
-    "z_max_velocity_mm_s" to "Z — tốc độ trần (mm/s)",
-    "y_max_velocity_deg_s" to "Y — tốc độ trần (°/s)",
+// Nhung so nguoi van hanh that su mo ra sua. Dat gan nut Luu.
+val TUNING_GROUPS: List<FieldGroup> = listOf(
+    FieldGroup(
+        "Kích thước rổ", "Basket dimensions",
+        listOf(
+            Field("basket_length", "Chiều dài, theo X (mm)", "Length, along X (mm)"),
+            Field("basket_depth", "Chiều sâu, hướng ra ngoài (mm)", "Depth, outward (mm)"),
+            Field("basket_height", "Chiều cao thành rổ (mm)", "Wall height (mm)"),
+            Field("basket_gap", "Khe hở tối thiểu giữa 2 rổ (mm)", "Minimum gap between baskets (mm)"),
+        ),
+        noteVi = "Đổi mấy số này là cả bố cục xếp lại.",
+        noteEn = "Changing these re-computes the whole layout.",
+    ),
+    FieldGroup(
+        "Tốc độ và thời gian", "Speed and timing",
+        listOf(
+            Field("vel_x", "X: tốc độ ngang (mm/s)", "X: horizontal speed (mm/s)"),
+            Field("vel_z", "Z: tốc độ lên xuống (mm/s)", "Z: vertical speed (mm/s)"),
+            Field("tilt_vel", "Y: tốc độ lật (°/s)", "Y: tipping speed (°/s)"),
+            Field("dwell_ms", "Dừng ổn định tại rổ (ms)", "Settle time at the basket (ms)", integer = true),
+            Field("tilt_hold_ms", "Giữ ở góc lật (ms)", "Hold at the tipping angle (ms)", integer = true),
+            Field("tilt_count", "Số lần lật mỗi chu trình", "Tips per cycle", integer = true),
+        ),
+        noteVi = "Đồng bộ thẳng xuống máy, không phải mở TIA.",
+        noteEn = "Synced straight to the machine — no need to open TIA.",
+    ),
 )
 
-// So nguyen thi bo duoi ".0" cho o nhap sach, so le thi giu nguyen.
-fun formatValue(value: Double, integer: Boolean): String =
-    if (integer || value == value.toLong().toDouble()) value.toLong().toString()
-    else value.toString()
+// Ca hai gop lai - dung cho cho nao can duyet het moi o, nhu luc doc/ghi ban nhap.
+val GEOMETRY_GROUPS: List<FieldGroup> = SETUP_GROUPS + TUNING_GROUPS
+
+// Nhan cua bang quy doi. Nhan cua tung truc da bo tien to "X — " vi bang xep
+// moi truc mot cot, tieu de cot noi ro roi.
+val DERIVED_LABELS: Map<String, Pair<String, String>> = mapOf(
+    "so_ro" to ("Số rổ máy xếp được" to "Baskets in the layout"),
+    "buoc_ngang_mm" to ("Bước ngang giữa 2 rổ (mm)" to "Column pitch (mm)"),
+    "khe_ho_that_mm" to ("Khe hở thật sau khi trải đều (mm)" to "Actual gap after spreading (mm)"),
+    "buoc_hang_mm" to ("Bước giữa 2 hàng (mm)" to "Row pitch (mm)"),
+    "x_pulses_per_mm" to ("xung mỗi mm" to "pulses per mm"),
+    "z_pulses_per_mm" to ("xung mỗi mm" to "pulses per mm"),
+    "y_pulses_per_degree" to ("xung mỗi độ" to "pulses per degree"),
+    "x_pulses_full_travel" to ("xung hết hành trình" to "pulses, full travel"),
+    "z_pulses_full_travel" to ("xung hết hành trình" to "pulses, full travel"),
+    "y_pulses_full_range" to ("xung hết góc lật" to "pulses, full tipping range"),
+    "x_max_velocity_mm_s" to ("tốc độ trần (mm/s)" to "top speed (mm/s)"),
+    "z_max_velocity_mm_s" to ("tốc độ trần (mm/s)" to "top speed (mm/s)"),
+    "y_max_velocity_deg_s" to ("tốc độ trần (°/s)" to "top speed (°/s)"),
+)
+
+fun derivedLabel(key: String, lang: Lang): String {
+    val pair = DERIVED_LABELS[key] ?: return key
+    return if (lang == Lang.VI) pair.first else pair.second
+}
+
+/** So thuc -> chuoi de dat vao o nhap: bo duoi ".0" cho o so nguyen va cho ca
+ *  nhung so tron, khong ai muon nhin "200.0" trong o dai rong. */
+fun formatValue(value: Double, integer: Boolean): String = when {
+    integer -> value.toLong().toString()
+    value == value.toLong().toDouble() -> value.toLong().toString()
+    else -> value.toString()
+}

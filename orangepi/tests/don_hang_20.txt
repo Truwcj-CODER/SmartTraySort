@@ -1,0 +1,115 @@
+DANH SACH DON HANG - de doi chieu voi may khi chay
+20 don, moi don 2-6 SKU, tong 86 SKU
+
+DON         RO   SKU
+------------------------------------------------------------------------------
+DH-1001      1   HSK-A4731 HSK-A5842 HSK-A8716 HSK-A8765 HSK-A9172
+DH-1002      2   HSK-B1087 HSK-B4754
+DH-1003      3   HSK-C4872 HSK-C5233 HSK-C7328
+DH-1004      4   HSK-D2793 HSK-D3683 HSK-D9179
+DH-1005      5   HSK-E4739 HSK-E5869 HSK-E6078
+DH-1006      6   HSK-F2001 HSK-F3380 HSK-F5316 HSK-F7410 HSK-F8517
+DH-1007      7   HSK-G2312 HSK-G4513 HSK-G5595 HSK-G8585 HSK-G9013 HSK-G9850
+DH-1008      8   HSK-H1369 HSK-H3474 HSK-H4135 HSK-H8527
+DH-1009      9   HSK-I6246 HSK-I6432 HSK-I9906
+DH-1010     10   HSK-J1775 HSK-J2495 HSK-J5569 HSK-J5746 HSK-J6778 HSK-J7182
+DH-1011     11   HSK-K5250 HSK-K7707
+DH-1012     12   HSK-L1358 HSK-L2732 HSK-L3910 HSK-L6665
+DH-1013     13   HSK-M2482 HSK-M3877 HSK-M5552 HSK-M8372 HSK-M8757
+DH-1014     14   HSK-N4348 HSK-N4796 HSK-N5478 HSK-N5595 HSK-N6421
+DH-1015     15   HSK-O2717 HSK-O5263 HSK-O6470 HSK-O6628 HSK-O8087 HSK-O9220
+DH-1016     16   HSK-P1126 HSK-P6027 HSK-P7347 HSK-P8783
+DH-1017     17   HSK-Q3121 HSK-Q5111 HSK-Q6156 HSK-Q7132
+DH-1018     18   HSK-R2082 HSK-R2255 HSK-R2795 HSK-R3007 HSK-R8672
+DH-1019     19   HSK-S5099 HSK-S6072 HSK-S6295 HSK-S6500 HSK-S6872 HSK-S7874
+DH-1020     20   HSK-T1413 HSK-T4079 HSK-T8011 HSK-T8135 HSK-T9766
+------------------------------------------------------------------------------
+
+TRA NGUOC SKU -> DON -> RO:
+
+  HSK-A4731    -> DH-1001    -> ro 1
+  HSK-A5842    -> DH-1001    -> ro 1
+  HSK-A8716    -> DH-1001    -> ro 1
+  HSK-A8765    -> DH-1001    -> ro 1
+  HSK-A9172    -> DH-1001    -> ro 1
+  HSK-B1087    -> DH-1002    -> ro 2
+  HSK-B4754    -> DH-1002    -> ro 2
+  HSK-C4872    -> DH-1003    -> ro 3
+  HSK-C5233    -> DH-1003    -> ro 3
+  HSK-C7328    -> DH-1003    -> ro 3
+  HSK-D2793    -> DH-1004    -> ro 4
+  HSK-D3683    -> DH-1004    -> ro 4
+  HSK-D9179    -> DH-1004    -> ro 4
+  HSK-E4739    -> DH-1005    -> ro 5
+  HSK-E5869    -> DH-1005    -> ro 5
+  HSK-E6078    -> DH-1005    -> ro 5
+  HSK-F2001    -> DH-1006    -> ro 6
+  HSK-F3380    -> DH-1006    -> ro 6
+  HSK-F5316    -> DH-1006    -> ro 6
+  HSK-F7410    -> DH-1006    -> ro 6
+  HSK-F8517    -> DH-1006    -> ro 6
+  HSK-G2312    -> DH-1007    -> ro 7
+  HSK-G4513    -> DH-1007    -> ro 7
+  HSK-G5595    -> DH-1007    -> ro 7
+  HSK-G8585    -> DH-1007    -> ro 7
+  HSK-G9013    -> DH-1007    -> ro 7
+  HSK-G9850    -> DH-1007    -> ro 7
+  HSK-H1369    -> DH-1008    -> ro 8
+  HSK-H3474    -> DH-1008    -> ro 8
+  HSK-H4135    -> DH-1008    -> ro 8
+  HSK-H8527    -> DH-1008    -> ro 8
+  HSK-I6246    -> DH-1009    -> ro 9
+  HSK-I6432    -> DH-1009    -> ro 9
+  HSK-I9906    -> DH-1009    -> ro 9
+  HSK-J1775    -> DH-1010    -> ro 10
+  HSK-J2495    -> DH-1010    -> ro 10
+  HSK-J5569    -> DH-1010    -> ro 10
+  HSK-J5746    -> DH-1010    -> ro 10
+  HSK-J6778    -> DH-1010    -> ro 10
+  HSK-J7182    -> DH-1010    -> ro 10
+  HSK-K5250    -> DH-1011    -> ro 11
+  HSK-K7707    -> DH-1011    -> ro 11
+  HSK-L1358    -> DH-1012    -> ro 12
+  HSK-L2732    -> DH-1012    -> ro 12
+  HSK-L3910    -> DH-1012    -> ro 12
+  HSK-L6665    -> DH-1012    -> ro 12
+  HSK-M2482    -> DH-1013    -> ro 13
+  HSK-M3877    -> DH-1013    -> ro 13
+  HSK-M5552    -> DH-1013    -> ro 13
+  HSK-M8372    -> DH-1013    -> ro 13
+  HSK-M8757    -> DH-1013    -> ro 13
+  HSK-N4348    -> DH-1014    -> ro 14
+  HSK-N4796    -> DH-1014    -> ro 14
+  HSK-N5478    -> DH-1014    -> ro 14
+  HSK-N5595    -> DH-1014    -> ro 14
+  HSK-N6421    -> DH-1014    -> ro 14
+  HSK-O2717    -> DH-1015    -> ro 15
+  HSK-O5263    -> DH-1015    -> ro 15
+  HSK-O6470    -> DH-1015    -> ro 15
+  HSK-O6628    -> DH-1015    -> ro 15
+  HSK-O8087    -> DH-1015    -> ro 15
+  HSK-O9220    -> DH-1015    -> ro 15
+  HSK-P1126    -> DH-1016    -> ro 16
+  HSK-P6027    -> DH-1016    -> ro 16
+  HSK-P7347    -> DH-1016    -> ro 16
+  HSK-P8783    -> DH-1016    -> ro 16
+  HSK-Q3121    -> DH-1017    -> ro 17
+  HSK-Q5111    -> DH-1017    -> ro 17
+  HSK-Q6156    -> DH-1017    -> ro 17
+  HSK-Q7132    -> DH-1017    -> ro 17
+  HSK-R2082    -> DH-1018    -> ro 18
+  HSK-R2255    -> DH-1018    -> ro 18
+  HSK-R2795    -> DH-1018    -> ro 18
+  HSK-R3007    -> DH-1018    -> ro 18
+  HSK-R8672    -> DH-1018    -> ro 18
+  HSK-S5099    -> DH-1019    -> ro 19
+  HSK-S6072    -> DH-1019    -> ro 19
+  HSK-S6295    -> DH-1019    -> ro 19
+  HSK-S6500    -> DH-1019    -> ro 19
+  HSK-S6872    -> DH-1019    -> ro 19
+  HSK-S7874    -> DH-1019    -> ro 19
+  HSK-T1413    -> DH-1020    -> ro 20
+  HSK-T4079    -> DH-1020    -> ro 20
+  HSK-T8011    -> DH-1020    -> ro 20
+  HSK-T8135    -> DH-1020    -> ro 20
+  HSK-T9766    -> DH-1020    -> ro 20

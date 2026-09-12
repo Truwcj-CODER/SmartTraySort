@@ -14,6 +14,8 @@ private val Context.store by preferencesDataStore(name = "traysort")
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+enum class Lang { VI, EN }
+
 class Prefs(private val context: Context) {
 
     val serverUrl: Flow<String> = context.store.data.map { it[KEY_SERVER].orEmpty() }
@@ -21,6 +23,10 @@ class Prefs(private val context: Context) {
     // Rong = chua ai nhap gi. Man hinh dau tien se hoi dia chi truoc khi vao app.
     val theme: Flow<ThemeMode> = context.store.data.map { prefs ->
         runCatching { ThemeMode.valueOf(prefs[KEY_THEME] ?: "SYSTEM") }.getOrDefault(ThemeMode.SYSTEM)
+    }
+
+    val lang: Flow<Lang> = context.store.data.map { prefs ->
+        runCatching { Lang.valueOf(prefs[KEY_LANG] ?: "VI") }.getOrDefault(Lang.VI)
     }
 
     suspend fun setServerUrl(value: String) {
@@ -31,9 +37,14 @@ class Prefs(private val context: Context) {
         context.store.edit { it[KEY_THEME] = mode.name }
     }
 
+    suspend fun setLang(value: Lang) {
+        context.store.edit { it[KEY_LANG] = value.name }
+    }
+
     companion object {
         private val KEY_SERVER: Preferences.Key<String> = stringPreferencesKey("server_url")
         private val KEY_THEME: Preferences.Key<String> = stringPreferencesKey("theme")
+        private val KEY_LANG: Preferences.Key<String> = stringPreferencesKey("lang")
 
         val SUGGESTED: String = BuildConfig.DEFAULT_SERVER
 

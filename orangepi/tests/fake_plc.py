@@ -72,9 +72,9 @@ DEFAULTS = {
     Param.DWELL_MS: 1000.0,    # ms
     Param.TILT_HOLD_MS: 1000.0,
     Param.TILT_COUNT: 1.0,
-    Param.JOG_VEL_X: 10.0,     # jog co tinh chay cham de can chinh
-    Param.JOG_VEL_Y: 20.0,
-    Param.JOG_VEL_Z: 10.0,
+    Param.SEEK_VEL_X: 10.0,    # toc do bo di tim cam bien luc home - de cham
+    Param.SEEK_VEL_Y: 20.0,
+    Param.SEEK_VEL_Z: 10.0,
 }
 
 # Chay hai truc CUNG LUC hay lan luot. Khop DB_TrayTable.SyncMove := TRUE.
@@ -370,9 +370,11 @@ class FakePlc:
         if self.jog_ticks > self.JOG_MAX_TICKS:
             return                            # het thoi gian: bo qua, khong chay nua
 
-        dx = self.p(Param.JOG_VEL_X) * TICK
-        dy = self.p(Param.JOG_VEL_Y) * TICK
-        dz = self.p(Param.JOG_VEL_Z) * TICK
+        # Jog tay chay o toc do chay that, giong FB_XY_Tray: nguoi van hanh bam
+        # nut thu dung cai toc do may se chay tu dong. SEEK_VEL_* chi de home.
+        dx = self.p(Param.VEL_X) * TICK
+        dy = self.p(Param.VEL_Y) * TICK
+        dz = self.p(Param.VEL_Z) * TICK
 
         # Hai chieu cung mot truc bam cung luc thi triet tieu, khong uu tien ben nao.
         if CtrlBit.JOG_X_POS in bits:

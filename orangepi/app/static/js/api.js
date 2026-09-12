@@ -33,9 +33,6 @@ async function request(path, { method = 'GET', body } = {}) {
   return payload;
 }
 
-/* ------------------------------------------------------------- trang thai */
-export const getStatus = () => request('/api/status');
-
 /* ------------------------------------------------------------ lenh theo khay */
 export const runSlot = (slot) => request(`/api/slots/${slot}/run`, { method: 'POST' });
 export const gotoSlot = (slot) => request(`/api/slots/${slot}/goto`, { method: 'POST' });
@@ -44,6 +41,7 @@ export const teachSlot = (slot) => request(`/api/slots/${slot}/teach`, { method:
 /* ------------------------------------------------------------- lenh chung */
 export const home = () => request('/api/home', { method: 'POST' });
 export const park = () => request('/api/park', { method: 'POST' });
+export const parkHere = () => request('/api/park/here', { method: 'POST' });
 export const stop = () => request('/api/stop', { method: 'POST' });
 export const reset = () => request('/api/reset', { method: 'POST' });
 export const moveTo = (x, z) => request('/api/move', { method: 'POST', body: { x, z } });
@@ -52,6 +50,7 @@ export const tiltTo = (angle) => request('/api/tilt', { method: 'POST', body: { 
 /* --------------------------------------------------------------- khay + ton kho */
 export const getSlots = () => request('/api/slots');
 export const tiltSlot = (slot) => request(`/api/slots/${slot}/tilt`, { method: 'POST' });
+export const getOrderAtSlot = (slot) => request(`/api/orders/${slot}`);
 
 
 export const addItems = (slot, amount = 1) =>
@@ -74,54 +73,22 @@ export const pushTable = () => request('/api/config/push', { method: 'POST' });
 
 export const setJog = (bits) => request('/api/jog', { method: 'POST', body: bits });
 
-// Mo duong nhan trang thai. Uu tien WebSocket, hong thi tu chuyen sang hoi vong.
-// Nho vay thieu thu vien websocket tren may chu thi giao dien van song.
-export function openStatusStream(onSnapshot, onLinkChange) {
-  const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/status`;
-  let socket = null;
-  let poller = null;
-  let retryDelay = 1000;
-  let stopped = false;
+// Status / inventory / layout, pushed over Server-Sent Events - same /api/events
+// stream the Android app uses. EventSource reconnects on its own, and the server
+// sends all three event types once on connect, so no separate initial fetch.
+//
+// handlers: { status, inventory, layout, linkChange }
+export function openEventStream(handlers) {
+  const source = new EventSource('/api/events');
 
-  const startPolling = () => {
-    if (poller) return;
-    poller = setInterval(async () => {
-      try {
-        onSnapshot(await getStatus());
-        onLinkChange?.(true, 'polling');
-      } catch {
-        onLinkChange?.(false, 'polling');
-      }
-    }, 500);
-  };
+  for (const type of ['status', 'inventory', 'layout']) {
+    if (handlers[type]) {
+      source.addEventListener(type, (event) => handlers[type](JSON.parse(event.data)));
+    }
+  }
 
-  const stopPolling = () => {
-    clearInterval(poller);
-    poller = null;
-  };
+  source.onopen = () => handlers.linkChange?.(true);
+  source.onerror = () => handlers.linkChange?.(false);   // EventSource retries itself
 
-  const connect = () => {
-    if (stopped) return;
-    socket = new WebSocket(url);
-
-    socket.onopen = () => {
-      retryDelay = 1000;
-      stopPolling();
-      onLinkChange?.(true, 'websocket');
-    };
-
-    socket.onmessage = (event) => onSnapshot(JSON.parse(event.data));
-
-    socket.onclose = () => {
-      onLinkChange?.(false, 'websocket');
-      startPolling();               // khong de giao dien chet trong luc cho ket noi lai
-      setTimeout(connect, retryDelay);
-      retryDelay = Math.min(retryDelay * 2, 10000);
-    };
-
-    socket.onerror = () => socket.close();
-  };
-
-  connect();
-  return () => { stopped = true; stopPolling(); socket?.close(); };
+  return () => source.close();
 }

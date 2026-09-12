@@ -37,6 +37,11 @@ fun Panel(
     subtitle: String? = null,
     action: (@Composable () -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(14.dp),
+    // Bat co nay khi muon phan noi dung an het chieu cao con lai cua panel - luc
+    // do cac hang ben trong moi chia weight duoc. Phai la co chu khong phai mot
+    // Modifier truyen vao: weight() la ham cua ColumnScope, chi goi duoc BEN
+    // TRONG panel nay.
+    fillContentHeight: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val brand = LocalBrand.current
@@ -78,7 +83,11 @@ fun Panel(
             }
         }
         Spacer(Modifier.height(10.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+        Column(
+            if (fillContentHeight) Modifier.weight(1f) else Modifier,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            content = content,
+        )
     }
 }
 

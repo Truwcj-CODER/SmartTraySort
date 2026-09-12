@@ -48,10 +48,17 @@ class Param(IntEnum):
     DWELL_MS = 6     # ms, dung yen tai ro cho het rung
     TILT_HOLD_MS = 7  # ms, giu o goc lat
     TILT_COUNT = 8   # so lan lat
-    JOG_VEL_X = 9
-    JOG_VEL_Y = 10
-    JOG_VEL_Z = 11
-    AUTO_HOME = 12   # 1=bat auto-home khi bat dien, 0=tat
+    # KHONG CON TAC DUNG. Ca may gio chi dung MOT bo toc do: jog tay, chay tu
+    # dong va do cam bien luc home deu lay VelX / TiltVel / VelZ. PLC van nhan ba
+    # ma nay va ghi vao DB_TrayTable, nhung khong cho nao doc toi nua.
+    # Giu lai de tools/home_test.py cu khong bao loi khi gui xuong.
+    SEEK_VEL_X = 9
+    SEEK_VEL_Y = 10
+    SEEK_VEL_Z = 11
+    # KHONG CON TAC DUNG. May LUON tu lay goc sau khi mat dien truc - do la
+    # viec bat buoc, khong phai tuy chon. PLC van nhan ma nay nhung FB khong
+    # doc UseAutoHome nua.
+    AUTO_HOME = 12
 
     # 16..18 khong ghi vao bang tham so ma sua thang DynamicDefaults cua
     # Technology Object, tuc gia toc dung cho moi lenh chay.
@@ -65,6 +72,21 @@ class Param(IntEnum):
     ACC_Z = 18       # mm/s2
 
 
+# Params carrying an angle, an angular rate or an angular acceleration on the
+# tilt axis. Axis_Y in TIA is scaled in pulses, so these are the values
+# PlcService converts on the way down. A degree, a degree per second and a
+# degree per second squared all scale by the same pulses-per-degree factor, so
+# one set covers all three. Everything else in Param is mm, ms or a plain
+# count - never scaled.
+Y_SCALED_PARAMS = frozenset({
+    Param.VEL_Y,
+    Param.TILT_ANGLE,
+    Param.TILT_VEL,
+    Param.SEEK_VEL_Y,
+    Param.ACC_Y,
+})
+
+
 # Ma ket qua PLC tra ve o HR15
 class Result(IntEnum):
     IDLE = 0
@@ -73,16 +95,25 @@ class Result(IntEnum):
     ABORTED = 3
     ERROR = 4
     REJECTED = 5
+    # Cham vach gioi han: truc do ngung, truc con lai chay not. Khong phai loi -
+    # tach rieng khoi ABORTED de nhat ky khong bao "that bai" khi may chay dung.
+    LIMIT = 6
 
 
 RESULT_TEXT: dict[int, str] = {
-    Result.IDLE: "chua chay lenh nao",
-    Result.RUNNING: "dang chay",
-    Result.OK: "hoan thanh",
-    Result.ABORTED: "bi dung giua chung",
-    Result.ERROR: "loi",
-    Result.REJECTED: "lenh khong hop le hoac may chua san sang",
+    Result.IDLE: "chưa chạy lệnh nào",
+    Result.RUNNING: "đang chạy",
+    Result.OK: "hoàn thành",
+    Result.ABORTED: "bị dừng giữa chừng",
+    Result.ERROR: "lỗi",
+    Result.REJECTED: "lệnh không hợp lệ hoặc máy chưa sẵn sàng",
+    Result.LIMIT: "dừng vì chạm vạch giới hạn",
 }
+
+
+# Ket qua KHONG phai loi. Ngoai OK ra con LIMIT: cham vach gioi han la may lam
+# dung viec cua no, khong phai hong hoc gi - bao len nhu mot ket qua binh thuong.
+RESULT_OK = frozenset({Result.OK, Result.LIMIT})
 
 
 # Cac bit trong HR2
@@ -104,6 +135,15 @@ class StatusBit(IntFlag):
     DONE = 1 << 2
     HOMED = 1 << 3
     ERROR = 1 << 4
+
+    # Bit 8..12: trang thai CAM BIEN, chi de xem. Ten dat theo CHAN chu khong
+    # theo cong dung, vi chinh cai dang phai lam ro la chan nao noi voi cai gi.
+    IN_00 = 1 << 8    # IO_List: STOP_BTN  | FB_XY_Tray doc lam X home
+    IN_01 = 1 << 9    # IO_List: X_MIN     | FB_XY_Tray doc lam Z home
+    IN_03 = 1 << 10   # IO_List: Z_HOME
+    IN_06 = 1 << 11   # IO_List: Y_HOME
+    IN_10 = 1 << 12   # IO_List: X_HOME (doi tu %I0.0 sang)
+    IN_07 = 1 << 13   # START/STOP: tiep diem NO 8-12 cua relay K1
 
 
 SEQ_MAX = 65535
@@ -165,6 +205,10 @@ class PlcStatus:
     y: float      # goc lat (do)
     z: float      # do cao (mm)
     slot: int
+    # Trang thai cac chan cam bien, khoa la ten CHAN (%I0.0 -> "I0.0"). Chi de
+    # xem tren web: che tay vao cam bien roi nhin chan nao len TRUE la biet no
+    # noi vao dau, khoi phai mo TIA di do.
+    inputs: dict
 
     @classmethod
     def from_registers(cls, regs: list[int]) -> "PlcStatus":
@@ -188,11 +232,19 @@ class PlcStatus:
             y=round(decode_f32(regs[8], regs[9]), 3),
             z=round(decode_f32(regs[10], regs[11]), 3),
             slot=regs[12],
+            inputs={
+                "I0.0": bool(bits & StatusBit.IN_00),
+                "I0.1": bool(bits & StatusBit.IN_01),
+                "I0.3": bool(bits & StatusBit.IN_03),
+                "I0.6": bool(bits & StatusBit.IN_06),
+                "I1.0": bool(bits & StatusBit.IN_10),
+                "I0.7": bool(bits & StatusBit.IN_07),
+            },
         )
 
     @property
     def result_text(self) -> str:
-        return RESULT_TEXT.get(self.result, f"ma la ({self.result})")
+        return RESULT_TEXT.get(self.result, f"mã lạ ({self.result})")
 
     def to_dict(self) -> dict:
         data = asdict(self)

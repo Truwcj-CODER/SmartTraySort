@@ -1,4 +1,6 @@
-// Moi thao tac cham vao DOM nam o day. Khong goi API, khong giu logic nghiep vu.
+// Every DOM touch lives here. No API calls, no business logic.
+
+import { t, getLang } from './i18n.js';
 
 const el = {
   connPill: document.getElementById('conn-pill'),
@@ -6,10 +8,11 @@ const el = {
   posX: document.getElementById('pos-x'),
   posY: document.getElementById('pos-y'),
   posZ: document.getElementById('pos-z'),
-  stockTotal: document.getElementById('stock-total'),
   summaryText: document.getElementById('summary-text'),
   selectedSlot: document.getElementById('selected-slot'),
   tray: document.getElementById('tray'),
+  orderLine: document.getElementById('order-line'),
+  trayHint: document.getElementById('tray-hint'),
   log: document.getElementById('log'),
   statecard: document.getElementById('statecard'),
   stateWhere: document.getElementById('state-where'),
@@ -17,82 +20,37 @@ const el = {
   stateResult: document.getElementById('state-result'),
   stages: document.getElementById('stages'),
   alert: document.getElementById('alert'),
+  syncBanner: document.getElementById('sync-banner'),
   derived: document.getElementById('derived'),
   problems: document.getElementById('problems'),
   geometryForm: document.getElementById('geometry-form'),
 };
 
-/** Cac nut chi bam duoc khi da chon khay. */
-const SLOT_ACTIONS = ['run', 'goto', 'tilt', 'teach', 'item-add', 'item-remove', 'item-clear'];
+/** Buttons that only work once a slot is picked. */
+const SLOT_ACTIONS = ['run', 'goto', 'tilt', 'teach'];
 
-// Buoc trong FB_XY_Tray -> chu tieng Viet + giai doan tren thanh tien trinh.
-// Khop voi CASE #StepNo trong 04_FB_XY_Tray.scl
-const STEPS = {
-  0:   { text: 'chờ lệnh', stage: null },
-  5:   { text: 'đang lấy gốc tọa độ', stage: null },
-  10:  { text: 'chạy ngang tới khay', stage: 0 },
-  20:  { text: 'lên xuống tới khay', stage: 1 },
-  30:  { text: 'dừng ổn định tại khay', stage: 2 },
-  100: { text: 'chuẩn bị lật', stage: 3 },
-  170: { text: 'đang lật ra', stage: 3 },
-  175: { text: 'giữ ở góc lật', stage: 3 },
-  180: { text: 'lật về giữa', stage: 3 },
-  190: { text: 'lật xong', stage: 3 },
-  195: { text: 'đưa trục lật về giữa', stage: 4 },
-  200: { text: 'nâng hạ về chỗ chờ', stage: 4 },
-  210: { text: 'chạy ngang về chỗ chờ', stage: 4 },
-  220: { text: 'hoàn tất chu trình', stage: 4 },
-  300: { text: 'lật tay tới góc đặt', stage: null },
-  900: { text: 'DỪNG VÌ LỖI', stage: null },
-  950: { text: 'đang xóa lỗi…', stage: null },
+// FB_XY_Tray step -> which progress stage lights up. Matches CASE #StepNo in
+// 04_FB_XY_Tray.scl. The step text itself comes from i18n ('step.<n>').
+const STAGE_OF = {
+  10: 0, 20: 1, 30: 2,
+  100: 3, 170: 3, 175: 3, 180: 3, 190: 3,
+  195: 4, 200: 4, 210: 4, 220: 4,
 };
 
-const RESULT_TEXT = {
-  0: 'chưa chạy lệnh nào',
-  1: 'đang chạy',
-  2: 'hoàn thành',
-  3: 'bị dừng giữa chừng',
-  4: 'lỗi',
-  5: 'lệnh không hợp lệ',
-};
-
-const POSITION_TOLERANCE = 3.0;   // mm, sai lech nho hon nay coi nhu da toi noi
-let slotRows = [];
-
-const DERIVED_LABELS = {
-  so_ro: 'Số rổ máy xếp được',
-  buoc_ngang_mm: 'Bước ngang giữa 2 rổ (mm)',
-  khe_ho_that_mm: 'Khe hở thật sau khi trải đều (mm)',
-  buoc_hang_mm: 'Bước giữa 2 hàng (mm)',
-  x_pulses_per_mm: 'X — xung mỗi mm',
-  z_pulses_per_mm: 'Z — xung mỗi mm',
-  y_pulses_per_degree: 'Y — xung mỗi độ',
-  x_pulses_full_travel: 'X — xung hết hành trình',
-  z_pulses_full_travel: 'Z — xung hết hành trình',
-  y_pulses_full_range: 'Y — xung hết góc lật',
-  x_max_velocity_mm_s: 'X — tốc độ trần (mm/s)',
-  z_max_velocity_mm_s: 'Z — tốc độ trần (mm/s)',
-  y_max_velocity_deg_s: 'Y — tốc độ trần (°/s)',
-};
-
-/**
- * Ma loi Motion Control hay gap, dich sang cau noi duoc viec phai lam.
- *
- * 16#8402 la cai de dinh nhat: dat toc do cao hon Max velocity cua truc trong
- * TIA thi MC_MoveAbsolute tu choi ngay, FB nhay buoc 900 va may dung im - nhin
- * ma hex tran thi khong ai doan ra.
- */
-const ERROR_HINTS = {
-  '0x8400': 'sai tham so lenh chay - kiem tra lai toa do gui xuong.',
-  '0x8402': 'tốc độ vượt trần Max velocity của trục trong TIA. Giảm tốc độ ở trang '
-          + 'Cài đặt, hoặc nâng Dynamics → Max velocity trong TIA rồi nạp lại.',
-  '0x8403': 'gia tốc vượt trần Max acceleration của trục trong TIA.',
-  '0x8404': 'giật (jerk) vượt trần khai báo trong TIA.',
-};
-
-function errorHint(hex) {
-  return ERROR_HINTS[String(hex).toUpperCase().replace('0X', '0x')] ?? '';
+function stepText(step) {
+  const key = `step.${step}`;
+  const text = t(key);
+  return text === key ? t('step.other', { step }) : text;
 }
+
+function resultText(result) {
+  const key = `result.${result}`;
+  const text = t(key);
+  return text === key ? t('result.other', { code: result }) : text;
+}
+
+const POSITION_TOLERANCE = 3.0;   // mm, closer than this counts as "arrived"
+let slotRows = [];
 
 /* ------------------------------------------------------------------- tab */
 
@@ -111,11 +69,14 @@ export function renderStatus(snapshot) {
   const { online, status, last_error: lastError } = snapshot;
 
   if (!online || !status) {
-    setConnection('offline', lastError ? `mất kết nối — ${lastError}` : 'mất kết nối PLC');
+    setConnection('offline', lastError ? t('conn.offlineWhy', { err: lastError }) : t('conn.offline'));
     el.posX.textContent = el.posY.textContent = el.posZ.textContent = '—';
     el.stateWhere.textContent = '—';
-    el.stateStage.textContent = 'mất kết nối';
+    el.stateStage.textContent = t('conn.offline');
     el.statecard.dataset.state = 'error';
+    // Mat ket noi thi khong con biet chan nao dang bat - xoa di, de so cu nam
+    // lai la nguoi van hanh tuong cam bien van dang bao.
+    renderSensors(null);
     markActiveSlot(null);
     return;
   }
@@ -125,56 +86,66 @@ export function renderStatus(snapshot) {
   el.posZ.textContent = status.z.toFixed(1);
 
   if (status.error) {
-    setConnection('error', `lỗi — ${status.error_id_hex}`);
+    setConnection('error', t('conn.error', { code: status.error_id_hex }));
   } else if (status.busy) {
-    setConnection('busy', `đang chạy — bước ${status.step}`);
+    setConnection('busy', t('conn.busy', { step: status.step }));
   } else if (!status.homed) {
-    setConnection('online', 'chưa lấy gốc tọa độ');
+    setConnection('online', t('conn.notHomed'));
   } else if (status.ready) {
-    setConnection('online', 'sẵn sàng');
+    setConnection('online', t('conn.ready'));
   } else {
-    setConnection('online', 'chưa cấp điện trục');
+    setConnection('online', t('conn.noPower'));
   }
 
-  renderStateCard(status);
+  el.stateWhere.textContent = describeWhere(status);
+  el.stateStage.textContent = stepText(status.step);
+  el.stateResult.textContent = resultText(status.result);
+  el.statecard.dataset.state =
+    status.error ? 'error' : status.busy ? 'busy' : status.homed ? 'ready' : 'idle';
+
+  renderStages(status, STAGE_OF[status.step] ?? null);
+  renderAlert(status);
+  renderSensors(status.inputs);
   markActiveSlot(status.busy ? status.slot : null);
 }
+
+/**
+ * Trang thai song cua cac chan cam bien.
+ *
+ * De doi chieu chan nao noi voi cai gi: che vat vao khe cam bien roi nhin chan
+ * nao doi sang BAT. Truoc day phai mo TIA tao watch table moi biet.
+ */
+function renderSensors(inputs) {
+  const o = document.getElementById('sensor-row');
+  if (!o) return;
+  if (!inputs) {
+    o.textContent = t('sensor.waiting');
+    return;
+  }
+  o.textContent = Object.entries(inputs)
+    .map(([chan, bat]) => `${chan} ${bat ? t('sensor.on') : t('sensor.off')}`)
+    .join(' · ');
+}
+
 
 function setConnection(state, text) {
   el.connPill.dataset.state = state;
   el.connText.textContent = text;
 }
 
-/** Bang trang thai: dang o dau, dang lam gi, lenh cuoi ra sao. */
-function renderStateCard(status) {
-  const step = STEPS[status.step] ?? { text: `bước ${status.step}`, stage: null };
-
-  el.stateWhere.textContent = describeWhere(status);
-  el.stateStage.textContent = step.text;
-  el.stateResult.textContent = RESULT_TEXT[status.result] ?? `mã ${status.result}`;
-
-  el.statecard.dataset.state =
-    status.error ? 'error' : status.busy ? 'busy' : status.homed ? 'ready' : 'idle';
-
-  renderStages(status, step.stage);
-  renderAlert(status);
-}
-
-/** Doi tri so X-Z thanh cau chu: dang o khay nao, o cho cho, hay dang chay. */
+// Turn the X-Z numbers into a phrase: at which slot, at the park spot, or moving.
 function describeWhere(status) {
   if (status.busy) {
-    return status.slot > 0 ? `đang chạy → khay ${status.slot}` : 'đang di chuyển';
+    return status.slot > 0 ? t('where.runningTo', { slot: status.slot }) : t('where.moving');
   }
-
   const near = slotRows.find((row) =>
     Math.abs(row.x - status.x) <= POSITION_TOLERANCE &&
     Math.abs(row.z - status.z) <= POSITION_TOLERANCE);
-  if (near) return `khay ${near.slot}`;
-
+  if (near) return t('where.atSlot', { slot: near.slot });
   if (Math.abs(status.x) <= POSITION_TOLERANCE && Math.abs(status.z) <= POSITION_TOLERANCE) {
-    return 'vị trí chờ (home)';
+    return t('where.park');
   }
-  return `ngang ${status.x.toFixed(0)} · cao ${status.z.toFixed(0)}`;
+  return t('where.freeXZ', { x: status.x.toFixed(0), z: status.z.toFixed(0) });
 }
 
 function renderStages(status, activeStage) {
@@ -194,17 +165,36 @@ function renderStages(status, activeStage) {
   });
 }
 
+/**
+ * Ma loi Motion Control hay gap, dich sang cau noi duoc viec phai lam.
+ *
+ * 16#8402 la cai de dinh nhat: dat toc do cao hon Max velocity cua truc trong
+ * TIA thi MC_MoveAbsolute tu choi ngay, FB nhay buoc 900 va may dung im - nhin
+ * ma hex tran thi khong ai doan ra. Giu khop voi ERROR_HINTS trong Machine.kt
+ * cua app Android.
+ */
+const ERROR_HINT_CODES = ['0x8400', '0x8402', '0x8403', '0x8404'];
+
+function errorHint(hex) {
+  const code = String(hex).toUpperCase().replace('0X', '0x');
+  return ERROR_HINT_CODES.includes(code) ? t(`hint.${code}`) : '';
+}
+
 function renderAlert(status) {
   let message = '';
   if (status.error) {
     const hint = errorHint(status.error_id_hex);
-    message = `MÁY DỪNG VÌ LỖI — mã ${status.error_id_hex}. `
-            + (hint ? `${hint} ` : '')
-            + 'Kiểm tra cơ cấu rồi bấm Xóa lỗi, sau đó Lấy gốc tọa độ.';
+    message = t('alert.faultHead', { code: status.error_id_hex })
+            + (hint ? ` ${hint}` : '')
+            + ` ${t('alert.faultTail')}`;
   } else if (status.result === 3) {
-    message = 'Chu trình trước bị dừng giữa chừng. Kiểm tra vị trí rồi chạy lại.';
+    message = t('alert.stoppedMidway');
+  } else if (status.result === 6) {
+    // Khong phai loi - truc cham vach gioi han va dung lai dung nhu phai the.
+    // Van bao mot dong vi chu trinh chua chay het, nguoi van hanh can biet.
+    message = t('alert.hitLimit');
   } else if (!status.homed) {
-    message = 'Chưa lấy gốc tọa độ — bấm "Lấy gốc tọa độ" trước khi chạy.';
+    message = t('alert.notHomed');
   }
 
   el.alert.textContent = message;
@@ -250,7 +240,8 @@ function groupSlots(rows) {
 
 /** Dung lai ca luoi khi so ro thay doi. Giu nguyen neu bo cuc van the. */
 function rebuildTray(rows) {
-  const shape = rows.map((r) => r.slot).join(',');
+  // Lang in the key too: switching VI/EN must redraw the row labels.
+  const shape = `${rows.map((r) => r.slot).join(',')}|${getLang()}`;
   if (el.tray.dataset.shape === shape) return;
   el.tray.dataset.shape = shape;
 
@@ -261,7 +252,10 @@ function rebuildTray(rows) {
 
     const label = document.createElement('span');
     label.className = 'tray__label';
-    label.textContent = `${group.side === 'phai' ? 'Phải' : 'Trái'} — hàng ${group.row + 1}`;
+    label.textContent = t('tray.rowLabel', {
+      side: group.side === 'phai' ? t('side.right') : t('side.left'),
+      row: group.row + 1,
+    });
 
     const slots = document.createElement('div');
     slots.className = 'tray__slots';
@@ -287,14 +281,123 @@ export function renderSlots(rows, summary) {
     button.querySelector('.slot__code').textContent = row.code || '';
     button.querySelector('.slot__count').textContent = `${row.count}/${row.capacity}`;
     button.querySelector('.slot__bar i').style.width = `${Math.min(ratio, 1) * 100}%`;
-    button.title = `Khay ${row.slot} — X ${row.x} mm, Z ${row.z} mm, lật ${row.side}`;
+    const side = row.side === 'phai' ? t('side.right') : t('side.left');
+    button.title = t('slot.title', { slot: row.slot, x: row.x, z: row.z, dir: side });
   });
 
-  el.stockTotal.textContent = `${summary.total_items}/${summary.total_capacity}`;
-  el.summaryText.textContent =
-    `${summary.total_items}/${summary.total_capacity} vật · ${summary.full_slots} khay đầy · ` +
-    `${summary.empty_slots} khay trống`;
+  el.summaryText.textContent = t('tray.summary', {
+    items: summary.total_items,
+    cap: summary.total_capacity,
+    full: summary.full_slots,
+    empty: summary.empty_slots,
+  });
+}
 
+/* ---------------------------------------------------------------- order line */
+
+// The SKU checklist for the picked slot, like the app's OrderLine. Null / an
+// empty order hides it and brings the generic hint back.
+function el_(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
+}
+
+// "DH-3001 · 3/3 món · ĐỦ" — done count vs total, then complete / missing.
+function orderStatusLine(order) {
+  const tail = order.complete
+    ? t('order.complete')
+    : t('order.missing', { n: order.total - order.done });
+  return `${t('order.progress', { done: order.done, total: order.total })} · ${tail}`;
+}
+
+function orderChips(order, into) {
+  const box = into || el_('div', 'order-line__chips');
+  order.items.forEach((item) => {
+    const chip = el_('span', 'order-chip', `${item.scanned ? '✓' : '○'} ${item.sku}`);
+    chip.dataset.scanned = item.scanned ? '1' : '0';
+    box.append(chip);
+  });
+  return box;
+}
+
+export function renderOrder(order) {
+  if (!order || !order.items || order.items.length === 0) {
+    el.orderLine.classList.add('is-hidden');
+    el.orderLine.replaceChildren();
+    el.trayHint?.classList.remove('is-hidden');
+    return;
+  }
+
+  el.trayHint?.classList.add('is-hidden');
+  el.orderLine.classList.remove('is-hidden');
+
+  // One flowing row: the status text and the SKU chips wrap together, with the
+  // QR button held to the right — same as the app's OrderLine FlowRow.
+  const flow = el_('div', 'order-line__flow');
+  const label = el_('span', 'order-line__label',
+    `${order.order} · ${orderStatusLine(order)}`);
+  label.dataset.state = order.complete ? 'ok' : 'warn';
+  flow.append(label);
+  orderChips(order, flow);
+
+  // FilledTonalButton with a QR icon then the label, like the app's OrderLine.
+  const qrBtn = el_('button', 'btn order-qr-btn');
+  qrBtn.type = 'button';
+  qrBtn.innerHTML =
+    '<svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true">'
+    + '<path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm-2 8h8v8H3v-8zm2 2v4h4v-4H5zM13 3h8v8h-8V3zm2 2v4h4V5h-4z'
+    + 'M13 13h2v2h-2v-2zm4 0h2v2h-2v-2zm-4 4h2v2h-2v-2zm2 2h2v2h-2v-2zm2-2h2v2h-2v-2zm2 2h2v2h-2v-2zm0-4h2v2h-2v-2z"/>'
+    + '</svg>';
+  qrBtn.append(el_('span', null, t('order.qr')));
+  qrBtn.addEventListener('click', () => openQr(order));
+
+  const row = el_('div', 'order-line__row');
+  row.append(flow, qrBtn);
+  el.orderLine.replaceChildren(row);
+}
+
+// QR dialog, laid out like the app's OrderQrDialog: order code as the title, a
+// big QR, the slot/progress line, the SKU checklist, then a hint and Close.
+function openQr(order) {
+  const overlay = el_('div', 'modal-overlay');
+  const card = el_('div', 'modal-card qr-card');
+
+  const img = el_('img', 'qr-img');
+  img.alt = order.order;
+  img.src = `/api/orders/${encodeURIComponent(order.order)}/qr`;
+  const frame = el_('div', 'qr-frame');
+  frame.append(img);
+
+  const status = el_('div', 'qr-status',
+    `${t('cycle.slotNo', { slot: order.slot })} · ${orderStatusLine(order)}`);
+  status.dataset.state = order.complete ? 'ok' : 'warn';
+
+  // Plain text button bottom-right, like the app's AlertDialog confirmButton.
+  const close = el_('button', 'btn btn--link modal-close', t('order.close'));
+  close.type = 'button';
+
+  const dismiss = () => {
+    overlay.remove();
+    document.removeEventListener('keydown', onKey);
+  };
+  function onKey(event) { if (event.key === 'Escape') dismiss(); }
+
+  close.addEventListener('click', dismiss);
+  overlay.addEventListener('click', (event) => { if (event.target === overlay) dismiss(); });
+  document.addEventListener('keydown', onKey);
+
+  card.append(
+    el_('h3', 'modal-title', order.order),
+    frame,
+    status,
+    orderChips(order),
+    el_('p', 'qr-hint', t('order.qrHint')),
+    close,
+  );
+  overlay.append(card);
+  document.body.append(overlay);
 }
 
 /* ---------------------------------------------------------------- chon khay */
@@ -304,13 +407,11 @@ export function markSelectedSlot(slot) {
     button.classList.toggle('is-selected', Number(button.dataset.slot) === slot);
   });
 
-  el.selectedSlot.textContent = slot ? `khay số ${slot}` : 'chưa chọn khay';
+  el.selectedSlot.textContent = slot ? t('cycle.slotNo', { slot }) : t('cycle.noSlot');
 
   const hint = document.getElementById('manual-slot-hint');
   if (hint) {
-    hint.textContent = slot
-      ? `Đang thao tác trên khay ${slot}.`
-      : 'Chọn khay bên tab Vận hành trước.';
+    hint.textContent = slot ? t('manual.slotHintOn', { slot }) : t('manual.slotHintNone');
   }
 
   SLOT_ACTIONS.forEach((action) => {
@@ -330,23 +431,26 @@ function markActiveSlot(slot) {
 export function fillGeometryForm(geometry) {
   Object.entries(geometry).forEach(([key, value]) => {
     const input = el.geometryForm.elements.namedItem(key);
-    if (!input) return;
-    if (input.type === 'checkbox') input.checked = Boolean(value);
-    else input.value = value;
+    if (input) input.value = value;
   });
 
-  // Ghi chu duoi o goc lat phai bam theo gioi han that, khong viet cung trong HTML.
-  const note = document.getElementById('y-limit-note');
-  if (note) note.textContent = `±${geometry.y_max_angle}°`;
+  // The tilt hint carries the real software limit, filled here (not in HTML) so
+  // it tracks y_max_angle and re-renders in the right language.
+  const hint = document.getElementById('tilt-hint');
+  if (hint) hint.innerHTML = t('cfg.tiltHint', { limit: geometry.y_max_angle });
+
+  // Jog tay chay dung VelX / VelZ / TiltVel, khong co toc do rieng nua. Hien
+  // len de nguoi van hanh biet minh dang thu o toc do nao.
+  const jogNote = document.getElementById('jog-speed-note');
+  if (jogNote) {
+    jogNote.textContent = `X ${geometry.vel_x} mm/s · Z ${geometry.vel_z} mm/s`
+                        + ` · ${t('jog.tiltWord')} ${geometry.tilt_vel} °/s`;
+  }
 }
 
 export function readGeometryForm() {
   const out = {};
-  Array.from(el.geometryForm.elements).forEach((input) => {
-    if (!input.name) return;
-    if (input.type === 'checkbox') out[input.name] = input.checked;
-    else out[input.name] = Number(input.value);
-  });
+  new FormData(el.geometryForm).forEach((value, key) => { out[key] = Number(value); });
   return out;
 }
 
@@ -354,49 +458,45 @@ export function renderDerived(derived) {
   el.derived.replaceChildren(...Object.entries(derived).map(([key, value]) => {
     const li = document.createElement('li');
     const name = document.createElement('span');
-    name.textContent = DERIVED_LABELS[key] ?? key;
+    const label = t(`derived.${key}`);
+    name.textContent = label === `derived.${key}` ? key : label;
     const bold = document.createElement('b');
     bold.textContent = value;
     li.append(name, bold);
     return li;
   }));
-
-  applyVelocityLimits(derived);
 }
 
-/**
- * Dan tran toc do len chinh o nhap, de nguoi dung biet truoc khi bam Luu.
- *
- * Tran nay do co khi quyet dinh nen khong viet cung trong HTML duoc - server
- * tinh ra trong 'derived' moi lan doc cau hinh. Giong cach y-limit-note bam
- * theo y_max_angle o fillGeometryForm.
- */
-function applyVelocityLimits(derived) {
-  const caps = [
-    ['vel_x', derived.x_max_velocity_mm_s, 'X', 'mm/s'],
-    ['vel_z', derived.z_max_velocity_mm_s, 'Z', 'mm/s'],
-    ['tilt_vel', derived.y_max_velocity_deg_s, 'Y', '°/s'],
-  ];
+/* ------------------------------------------------------------- sync banner */
 
-  const parts = [];
-  caps.forEach(([name, cap, truc, donVi]) => {
-    if (!Number.isFinite(cap)) return;
-    const input = el.geometryForm?.elements.namedItem(name);
-    if (input) input.max = cap;
-    parts.push(`${truc} ${cap} ${donVi}`);
-  });
-
-  const note = document.getElementById('vel-limit-note');
-  if (note) note.textContent = parts.length ? parts.join(' · ') : '—';
+// Result of the last Save, right next to the button. level: ok | warn | error.
+export function showSyncBanner(text, level) {
+  if (!el.syncBanner) return;
+  el.syncBanner.textContent = text;
+  el.syncBanner.dataset.level = level;
+  el.syncBanner.classList.remove('is-hidden');
 }
 
-export function renderProblems(problems) {
+export function hideSyncBanner() {
+  el.syncBanner?.classList.add('is-hidden');
+}
+
+// Hai loai, hai mau: problems la cau hinh tu mau thuan nen KHONG day xuong PLC
+// duoc, con speed_warnings chi la toc do vuot tran driver - may van chay, nhung
+// truc se bao 16#8402 roi dung im. Gop mot cho cho nguoi van hanh khoi phai
+// nhin hai noi, tach bang data-level de nhin ra cai nao chan cai nao khong.
+export function renderProblems(problems, speedWarnings = []) {
   if (!el.problems) return;
-  el.problems.replaceChildren(...problems.map((text) => {
+  const row = (text, level) => {
     const li = document.createElement('li');
     li.textContent = text;
+    li.dataset.level = level;
     return li;
-  }));
+  };
+  el.problems.replaceChildren(
+    ...problems.map((t) => row(t, 'error')),
+    ...speedWarnings.map((t) => row(t, 'warn')),
+  );
 }
 
 /* ----------------------------------------------------------------- jog */
@@ -414,7 +514,7 @@ export function log(message, level = 'info') {
   item.dataset.level = level;
 
   const time = document.createElement('time');
-  time.textContent = new Date().toLocaleTimeString('vi-VN');
+  time.textContent = new Date().toLocaleTimeString(getLang() === 'en' ? 'en-GB' : 'vi-VN');
 
   const text = document.createElement('span');
   text.textContent = message;
@@ -427,6 +527,3 @@ export function log(message, level = 'info') {
   }
 }
 
-export function focusScanInput() {
-  document.getElementById('scan-input')?.focus();
-}

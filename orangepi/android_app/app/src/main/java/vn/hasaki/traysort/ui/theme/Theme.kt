@@ -28,11 +28,21 @@ data class Brand(
     val surfaceAlt: Color,
     val line: Color,
     val muted: Color,
+    // Thanh tren la mot dai gradient xanh Hasaki, chu trang - giong .topbar ben
+    // web. Mau nay khong phai vai tro nao cua Material3 nen phai di rieng.
+    val barStart: Color,
+    val barEnd: Color,
+    // Nen the nhan noi tren ro trong mo hinh 3D - --tag-bg ben web. Phai la mau
+    // DAC MO (khong trong suot han) de chu doc duoc du phia sau la gi.
+    val tagBg: Color,
     val dark: Boolean,
 )
 
 val LocalBrand = staticCompositionLocalOf {
-    Brand(Color.Green, Color.Yellow, Color.Red, Color.Gray, Color.LightGray, Color.Gray, Color.Gray, false)
+    Brand(
+        Color.Green, Color.Yellow, Color.Red, Color.Gray, Color.LightGray, Color.Gray, Color.Gray,
+        Color.DarkGray, Color.Gray, Color.White, false,
+    )
 }
 
 private val LightScheme = lightColorScheme(
@@ -109,6 +119,9 @@ private val LightBrand = Brand(
     surfaceAlt = Color(0xFFEEF1EF),
     line = Color(0xFFE6E9E7),
     muted = Color(0xFF7B8A83),
+    barStart = Color(0xFF2E7D5B),
+    barEnd = Color(0xFF3F9670),
+    tagBg = Color(0xE0FFFFFF),
     dark = false,
 )
 
@@ -120,6 +133,9 @@ private val DarkBrand = Brand(
     surfaceAlt = Color(0xFF242C35),
     line = Color(0xFF2A323B),
     muted = Color(0xFF8B98A3),
+    barStart = Color(0xFF2F7A5B),
+    barEnd = Color(0xFF3F9670),
+    tagBg = Color(0xC7000000),
     dark = true,
 )
 

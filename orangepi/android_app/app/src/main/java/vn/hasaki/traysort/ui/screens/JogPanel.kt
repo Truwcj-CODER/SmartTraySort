@@ -9,7 +9,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,18 +31,24 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import vn.hasaki.traysort.core.LocalS
 import vn.hasaki.traysort.ui.AppViewModel
 import vn.hasaki.traysort.ui.parts.Panel
 import vn.hasaki.traysort.ui.theme.LocalBrand
 
 @Composable
-fun JogPanel(vm: AppViewModel, modifier: Modifier = Modifier) {
+fun JogPad(vm: AppViewModel, modifier: Modifier = Modifier) {
     val brand = LocalBrand.current
 
     // Roi man hinh trong luc dang giu nut thi phai nha ra, khong may chay tiep.
     DisposableEffect(Unit) { onDispose { vm.releaseAllJog() } }
 
-    Panel("Jog tay", modifier = modifier, subtitle = "giữ để chạy") {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            LocalS.current.jogNote,
+            style = MaterialTheme.typography.labelSmall,
+            color = LocalBrand.current.muted,
+        )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Spacer(Modifier.weight(1f))
             JogKey("▲", "z_pos", vm, Modifier.weight(1f))
@@ -52,8 +60,8 @@ fun JogPanel(vm: AppViewModel, modifier: Modifier = Modifier) {
             JogKey("▶", "x_pos", vm, Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            JogKey("↺ lật trái", "y_neg", vm, Modifier.weight(1f))
-            JogKey("lật phải ↻", "y_pos", vm, Modifier.weight(1f))
+            JogKey(LocalS.current.jogLeft, "y_neg", vm, Modifier.weight(1f))
+            JogKey(LocalS.current.jogRight, "y_pos", vm, Modifier.weight(1f))
         }
     }
 }

@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import vn.hasaki.traysort.core.POSITION_TOLERANCE
 import vn.hasaki.traysort.core.RESULT_TEXT
 import vn.hasaki.traysort.core.STAGE_NAMES
+import vn.hasaki.traysort.core.LocalS
+import vn.hasaki.traysort.core.S
 import vn.hasaki.traysort.core.stepOf
 import vn.hasaki.traysort.data.PlcStatus
 import vn.hasaki.traysort.data.Slot
@@ -35,53 +37,55 @@ import vn.hasaki.traysort.ui.theme.LocalBrand
 import kotlin.math.abs
 
 /** Doi tri so X-Z thanh cau chu: dang o khay nao, o cho cho, hay dang chay. */
-fun describeWhere(status: PlcStatus, slots: List<Slot>): String {
+fun describeWhere(status: PlcStatus, slots: List<Slot>, s: S): String {
     if (status.busy) {
-        return if (status.slot > 0) "đang chạy → khay ${status.slot}" else "đang di chuyển"
+        return if (status.slot > 0) s.movingToSlot(status.slot) else s.moving
     }
 
     val near = slots.firstOrNull {
         abs(it.x - status.x) <= POSITION_TOLERANCE && abs(it.z - status.z) <= POSITION_TOLERANCE
     }
-    if (near != null) return "khay ${near.slot}"
+    if (near != null) return s.slotNo(near.slot)
 
     if (abs(status.x) <= POSITION_TOLERANCE && abs(status.z) <= POSITION_TOLERANCE) {
-        return "vị trí chờ (home)"
+        return s.atPark
     }
-    return "ngang ${status.x.toInt()} · cao ${status.z.toInt()}"
+    return s.atXZ(status.x.toInt(), status.z.toInt())
 }
 
 /** Cau canh bao dang treo tren dau. Null la khong co gi phai noi. */
-fun alertFor(status: PlcStatus): Pair<String, LogLevelTone>? = when {
-    status.error -> "MÁY DỪNG VÌ LỖI — mã ${status.errorIdHex}. " +
-        "Kiểm tra cơ cấu rồi bấm Xóa lỗi, sau đó Lấy gốc tọa độ." to LogLevelTone.ERROR
-
-    status.result == 3 -> "Chu trình trước bị dừng giữa chừng. Kiểm tra vị trí rồi chạy lại."
-        .to(LogLevelTone.WARN)
-
-    !status.homed -> "Chưa lấy gốc tọa độ — bấm \"Lấy gốc tọa độ\" trước khi chạy."
-        .to(LogLevelTone.WARN)
-
+fun alertFor(status: PlcStatus, s: S): Pair<String, LogLevelTone>? = when {
+    status.error -> s.faultBanner(status.errorIdHex, s.errorHint(status.errorIdHex)) to
+        LogLevelTone.ERROR
+    // Ma 3 chi con danh cho nut DUNG khan.
+    status.result == 3 -> s.abortedBanner to LogLevelTone.WARN
+    status.result == 6 -> s.hitLimitBanner to LogLevelTone.WARN
+    !status.homed -> s.notHomedBanner to LogLevelTone.WARN
     else -> null
 }
 
 /** Cau ngan hien canh cham mau tren thanh tieu de. */
-fun connectionText(snapshot: Snapshot): String {
+fun connectionText(snapshot: Snapshot, s: S): String {
     val status = snapshot.status
     if (!snapshot.online || status == null) {
-        return snapshot.lastError?.let { "mất kết nối — $it" } ?: "mất kết nối PLC"
+        return snapshot.lastError?.let { s.lostLink(it) } ?: s.plcOffline
     }
     return when {
-        status.error -> "lỗi — ${status.errorIdHex}"
-        status.busy -> "đang chạy — bước ${status.step}"
-        !status.homed -> "chưa lấy gốc tọa độ"
-        status.ready -> "sẵn sàng"
-        else -> "chưa cấp điện trục"
+        status.error -> s.faultCode(status.errorIdHex)
+        status.busy -> s.runningStep(status.step)
+        !status.homed -> s.notHomed
+        status.ready -> s.ready
+        else -> s.noServoPower
     }
 }
 
 @Composable
-fun StateCard(snapshot: Snapshot, slots: List<Slot>, modifier: Modifier = Modifier) {
+fun StateCard(
+    snapshot: Snapshot,
+    slots: List<Slot>,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
     val brand = LocalBrand.current
     // Mat ket noi thi ban tin cuoi cung khong con dung nua - coi nhu khong co,
     // de khong cho nao ben duoi lo hien mot con so da cu.
@@ -100,15 +104,45 @@ fun StateCard(snapshot: Snapshot, slots: List<Slot>, modifier: Modifier = Modifi
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(tone.copy(alpha = 0.10f))
-            .padding(12.dp),
+            .padding(if (compact) 9.dp else 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        StateRow("Đang ở", status?.let { describeWhere(it, slots) } ?: "—", tone)
-        StateRow("Giai đoạn", status?.let { stepOf(it.step).text } ?: "mất kết nối", tone)
-        StateRow(
-            "Lệnh cuối",
-            status?.let { RESULT_TEXT[it.result] ?: "mã ${it.result}" } ?: "—",
-            tone,
+        val s = LocalS.current
+        val where = status?.let { describeWhere(it, slots, s) } ?: "—"
+        val phase = status?.let { stepOf(it.step).text } ?: s.lostLinkShort
+        val last = status?.let { RESULT_TEXT[it.result] ?: s.resultCode(it.result) } ?: "—"
+
+        // Ban gon: ba muc nam mot dong. Dung trong khung dieu khien thap, cho
+        // moi thu vua trong tam mat va bam duoc ma khong phai cuon.
+        if (compact) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                InlineState(s.atPosition, where, tone)
+                InlineState(s.phase, phase, tone)
+                InlineState(s.lastCommand, last, tone)
+            }
+            return@Column
+        }
+
+        StateRow(s.atPosition, where, tone)
+        StateRow(s.phase, phase, tone)
+        StateRow(s.lastCommand, last, tone)
+    }
+}
+
+@Composable
+private fun InlineState(label: String, value: String, tone: androidx.compose.ui.graphics.Color) {
+    val brand = LocalBrand.current
+    Column {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = brand.muted)
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = tone,
+            maxLines = 1,
         )
     }
 }

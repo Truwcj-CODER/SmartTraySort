@@ -18,33 +18,73 @@ LIMIT_MARGIN = 20.0
 # Hai day ro nam hai ben ray. Thu tu nay quyet dinh cach danh so o.
 SIDES = ((+1, "phai"), (-1, "trai"))
 
-# Tan so xung cao nhat dong co con keo noi, do bang tay: cho chay o che do phat
-# xung roi tang dan cho toi khi dong co duoi buoc. May nay do duoc 20 000 xung/s
-# tren ca ba truc.
+# Tran tan so xung cua tung truc, Hz. Day la con so quyet dinh may chay nhanh
+# toi dau, nen de canh cai hinh hoc chia vao no - khong viet lai o tung cho goi.
 #
-# Chia cho so xung moi mm ra toc do tran theo mm/s - cung chinh la con so nhap
-# vao Dynamics > Max velocity trong TIA. Thap hon nhieu so voi tran 100 kHz cua
-# kenh PTO tren PLC, vi dong co duoi buoc truoc khi PLC het suc, nen day moi la
-# con so quyet dinh may chay nhanh toi dau.
+# Rieng tung truc vi ba con driver khac nhau han: X la HBS86H vong kin, Z la
+# 3DH583 buoc ho 3 pha, Y la ASD556R-LW buoc 2 pha. Truc nao do duoc bao nhieu
+# thi ghi bay nhieu, dung lay so cua truc nay ap cho truc kia. Doi dong co hay
+# doi vi buoc thi do lai roi sua o day.
 #
-# Doi dong co hay doi vi buoc thi do lai roi sua o day.
-MAX_PULSE_HZ = 20000.0
+# Ca ba so deu thap hon tran 100 kHz cua kenh PTO onboard, nen driver moi la
+# cho that su chan - khong phai CPU.
+PTO_MAX_HZ = {
+    "x": 30_000.0,   # dang do lai - do duoc 20 000, noi len de thu 300 mm/s
+    "z": 20_000.0,
+    "y": 20_000.0,
+}
+
+# Axis_Y trong TIA dang tinh bang DO, y het X va Z: server gui goc bang do va
+# PLC hieu thang, khong quy doi gi o giua. De False la dung cach may dang chay.
+#
+# Bat len True CHI KHI da vao TIA doi Technology Object Axis_Y sang dem XUNG va
+# nap lai xuong CPU. Luc do PlcService lay pulses_per_degree() nhan vao moi goc
+# va moi toc do goc truoc khi ghi - sai thu tu hai viec nay la mam quay mot goc
+# gap vai tram lan.
+Y_AXIS_COUNTS_PULSES = False
 
 # Gia toc cua ba truc. Cac lenh MC_MoveAbsolute khong truyen Acceleration nen
 # truc lay thang tu DynamicDefaults; server ghi may so nay xuong do bang tham so
-# 16/17/18 moi lan khoi dong va moi lan luu cau hinh.
+# 16..18 moi lan day cau hinh.
 #
-# De hang so chu khong phai o nhap tren web: doi gia toc la viec chinh mot lan
-# khi lap may, khong phai viec hang ngay - bay ra trang Cai dat chi to roi.
-#
-# Gia toc quyet dinh quang tang toc v^2/2a. Buoc giua hai cot la 406 mm, nen o
-# 200 mm/s voi gia toc 200 thi mat 100 mm de tang toc va 100 mm de ham - dung
-# nua quang duong. Nang len 1000 thi chi con 20 mm moi dau, chu trinh ngan di
-# gan mot giay moi lan di chuyen. Nang tu tu va chay thu, gia toc gat qua thi
-# dong co truot buoc.
-ACCEL_X = 200.0   # mm/s2
-ACCEL_Z = 200.0   # mm/s2
+# 200 mm/s2 la qua hien: di 80 mm/s thi rieng doan tang toc da het 16 mm, gan
+# nua quang duong. Nang len 500 thi doan tang toc ngan di han, chu trinh nhanh
+# len thay ro. Nang tu tu va chay thu, gia toc gat qua thi dong co truot buoc.
+ACCEL_X = 500.0   # mm/s2
+ACCEL_Z = 500.0   # mm/s2
 ACCEL_Y = 200.0   # do/s2
+
+# Which pair of fields holds an axis's scale, and what unit that axis moves in.
+# X and Z travel in mm off a lead screw; Y turns in degrees, direct drive.
+_AXIS_SCALE = {
+    "x": ("x_pulses_per_rev", "x_mm_per_rev", "mm"),
+    "z": ("z_pulses_per_rev", "z_mm_per_rev", "mm"),
+    "y": ("y_pulses_per_rev", "y_deg_per_rev", "°"),
+}
+
+
+def axis_scale_fields(axis: str) -> tuple[str, str, str]:
+    try:
+        return _AXIS_SCALE[axis]
+    except KeyError:
+        raise ValueError("truc phai la 'x', 'z' hoac 'y'") from None
+
+
+# Cau nay hien thang len tablet: nguoi van hanh cam may tinh bang dung canh may,
+# doc xong la go duoc sang TIA ngay. Phai noi ro go vao O NAO, vi server khong
+# ghi duoc ti le xuong PLC - do la ca diem mau chot cua viec hieu chinh.
+def _tia_note(axis: str, unit_new: float) -> str:
+    name = {"x": "Axis_X", "z": "Axis_Z", "y": "Axis_Y"}[axis]
+    head = (
+        f"Sửa con số này bên server thôi thì MÁY VẪN CHẠY NHƯ CŨ. Mở TIA, "
+        f"Technology Object {name} > Mechanics, chỉnh sao cho một vòng động cơ "
+    )
+    if axis == "y":
+        return (
+            head + f"làm mâm quay đúng {unit_new:g}° "
+            f"(tỉ số truyền {360.0 / unit_new:g}:1), rồi tải lại xuống CPU."
+        )
+    return head + f"đẩy trục đi đúng {unit_new:g} mm, rồi tải lại xuống CPU."
 
 
 # Kich thuoc thuc cua may. Server tu suy ra so ro va toa do tung ro tu day.
@@ -91,15 +131,30 @@ class Geometry:
     tilt_count: int = 1            # lat may lan moi chu trinh, 0 = bo qua buoc lat
     vel_x: float = 80.0            # toc do chay ngang (mm/s)
     vel_z: float = 60.0            # toc do len xuong (mm/s) - cham hon vi chong trong luc
-    auto_home: bool = True         # tu HOME khi bat dien
     dwell_ms: int = 1000           # dung yen tai ro cho het rung truoc khi lat (ms)
 
     # --- tham so co khi, PHAI nhap trung voi Technology Object trong TIA ---
     # Server khong ghi duoc may so nay xuong PLC, chi luu de doi chieu va tinh toan.
+    # Truc nao trong ba truc nay CHO XUONG PLC va truc nao khong - doc ky truoc
+    # khi sua, hai ve hau qua khac han nhau:
+    #
+    #   X, Z  khong xuong PLC. Ti le vitme song trong TIA (Technology Object >
+    #         Mechanics). Server gui toa do bang mm va toc do bang mm/s, nen
+    #         sua hai so duoi day chi doi may con so hien tren tab Cau hinh -
+    #         may chay y nguyen. Sua ti le that thi phai vao TIA.
+    #
+    #   Y     Hien GIONG X va Z: Axis_Y trong TIA cung dang tinh bang do nen
+    #         server gui goc thang xuong, sua hai so duoi day khong doi gi ca.
+    #         Chi khi bat Y_AXIS_COUNTS_PULSES (sau khi doi Axis_Y sang dem xung
+    #         trong TIA) thi ti le nay moi di xuong PLC va doi goc lat THAT.
+    #
+    # X: vitme bi Fi32, buoc 32 - mot vong truc di 32 mm.
     x_pulses_per_rev: int = 3200
     x_mm_per_rev: float = 32.0
+    # Z: dai dai, mot vong pulley keo khay len 54 mm.
     z_pulses_per_rev: int = 2000
     z_mm_per_rev: float = 54.0
+    # Y quay truc tiep, khong qua hop so, nen mot vong dong co la tron 360 do.
     y_pulses_per_rev: int = 1000
     y_deg_per_rev: float = 360.0
 
@@ -237,36 +292,137 @@ class Geometry:
                 return row["x"], row["z"], row["dir"]
         raise ValueError(f"so khay phai trong khoang 1..{self.slot_count}")
 
-    # --------------------------------------------------------------- doi chieu
+    # ----------------------------------------------------------- axis scale
+
+    # Pulses for one unit of real motion: mm for X and Z, a degree for Y.
+    def pulses_per_unit(self, axis: str) -> float:
+        pulses_field, unit_field, _ = axis_scale_fields(axis)
+        return getattr(self, pulses_field) / getattr(self, unit_field)
 
     # Dung de kiem tra tay: 1 mm can bao nhieu xung.
     def pulses_per_mm(self, axis: str) -> float:
-        if axis == "x":
-            return self.x_pulses_per_rev / self.x_mm_per_rev
-        if axis == "z":
-            return self.z_pulses_per_rev / self.z_mm_per_rev
-        raise ValueError("truc phai la 'x' hoac 'z'")
+        if axis not in ("x", "z"):
+            raise ValueError("truc phai la 'x' hoac 'z'")
+        return self.pulses_per_unit(axis)
 
     def pulses_per_degree(self) -> float:
-        return self.y_pulses_per_rev / self.y_deg_per_rev
+        return self.pulses_per_unit("y")
+
+    # Full stroke of an axis, in the unit that axis moves in.
+    def full_range(self, axis: str) -> float:
+        if axis == "y":
+            return self.y_max_angle * 2      # the swing runs both ways from centre
+        return self.x_travel if axis == "x" else self.z_travel
 
     # Tong so xung de chay het hanh trinh - de doi chieu voi kha nang driver.
     def pulses_for_full_travel(self, axis: str) -> int:
-        if axis == "y":
-            return round(self.pulses_per_degree() * self.y_max_angle * 2)
-        travel = self.x_travel if axis == "x" else self.z_travel
-        return round(self.pulses_per_mm(axis) * travel)
+        return round(self.pulses_per_unit(axis) * self.full_range(axis))
 
-    # Toc do tran cua truc, quy doi tu tan so xung toi da cua dong co.
-    #
-    # Bo trong max_frequency_hz thi lay MAX_PULSE_HZ da do duoc; truyen vao khi
-    # muon thu mot tan so khac (vi du doi chieu voi tran 100 kHz cua kenh PTO).
+    # Toc do tran cua truc theo tan so xung toi da cua kenh PTO.
     def max_velocity(self, axis: str, max_frequency_hz: float | None = None) -> float:
-        if max_frequency_hz is None:
-            max_frequency_hz = MAX_PULSE_HZ
-        if axis == "y":
-            return max_frequency_hz / self.pulses_per_degree()
-        return max_frequency_hz / self.pulses_per_mm(axis)
+        scale = self.pulses_per_unit(axis)      # rejects an unknown axis first
+        hz = PTO_MAX_HZ[axis] if max_frequency_hz is None else max_frequency_hz
+        return hz / scale
+
+    # Ti le truc Y ma PlcService phai dung khi ghi xuong PLC. 1.0 = khong quy
+    # doi, tuc PLC nhan dung so do server gui. Ba noi mac day (main.py, cli.py,
+    # send_layout) deu goi ham nay, khong noi nao tu quyet dinh lay.
+    def y_scale_for_plc(self) -> float:
+        return self.pulses_per_degree() if Y_AXIS_COUNTS_PULSES else 1.0
+
+    # --------------------------------------------------------- hieu chinh truc
+
+    # Work out an axis's true scale from one test move, without saving anything.
+    #
+    # The axis was told to travel `commanded` and really travelled `measured`
+    # (mm for X and Z, degrees for Y). The move emitted commanded * scale_now
+    # pulses, and those pulses produced `measured` of motion, so the true scale
+    # is commanded * scale_now / measured.
+    #
+    # The correction lands on the mm-per-rev / degrees-per-rev side, never on
+    # pulses-per-rev: pulses/rev is a dial the electrician sets on the driver
+    # and reads off it, while a gearbox nobody wrote down hides in the other
+    # number. Solving for it turns the measurement straight into a gear ratio.
+    def calibrate(self, axis: str, commanded: float, measured: float) -> dict:
+        pulses_field, unit_field, unit = axis_scale_fields(axis)
+
+        if commanded == 0:
+            raise ValueError("góc/khoảng cách ra lệnh phải khác 0")
+        if measured == 0:
+            raise ValueError(
+                "đo được 0 — trục không nhúc nhích. Kiểm tra nguồn servo và "
+                "bit AXES_ENABLE trước khi hiệu chỉnh"
+            )
+        if (commanded > 0) != (measured > 0):
+            raise ValueError(
+                f"ra lệnh {commanded:g} nhưng đo được {measured:g} — trục chạy "
+                "NGƯỢC chiều. Đây là đấu dây hoặc bit đảo chiều trong TIA, "
+                "không phải sai tỉ lệ; hiệu chỉnh không sửa được"
+            )
+
+        unit_now = float(getattr(self, unit_field))
+        unit_new = unit_now * (measured / commanded)
+        scale_now = self.pulses_per_unit(axis)
+        scale_new = float(getattr(self, pulses_field)) / unit_new
+
+        fixed = self.replace_axis_scale(axis, unit_new)
+
+        return {
+            "axis": axis,
+            "unit": unit,
+            "commanded": commanded,
+            "measured": measured,
+            # >1: truc chay THIEU, phai bao nhieu hon. <1: chay QUA.
+            "error_factor": round(commanded / measured, 4),
+            "field": unit_field,
+            "current": {
+                unit_field: round(unit_now, 6),
+                "pulses_per_unit": round(scale_now, 4),
+                "pulses_full_range": self.pulses_for_full_travel(axis),
+                "max_velocity": round(self.max_velocity(axis), 1),
+            },
+            "proposed": {
+                unit_field: round(unit_new, 6),
+                "pulses_per_unit": round(scale_new, 4),
+                "pulses_full_range": fixed.pulses_for_full_travel(axis),
+                "max_velocity": round(fixed.max_velocity(axis), 1),
+            },
+            # Chi truc Y moi noi duoc "ti so truyen": mot vong dong co ra bao
+            # nhieu vong mam. X va Z quay ra buoc vit me, khong phai ti so.
+            "gear_ratio": round(360.0 / unit_new, 4) if axis == "y" else None,
+            "tia_note": _tia_note(axis, unit_new),
+            "warnings": fixed.speed_warnings(),
+        }
+
+    # Same geometry with one axis rescaled. Used to price a calibration before
+    # anything is written, so the preview and the save cannot drift apart.
+    def replace_axis_scale(self, axis: str, unit_per_rev: float) -> "Geometry":
+        _, unit_field, _ = axis_scale_fields(axis)
+        return Geometry.from_dict({**self.to_dict(), unit_field: unit_per_rev})
+
+    # Speeds the PTO channel cannot actually clock out.
+    #
+    # These stay separate from problems(): a speed over the ceiling does not
+    # make the layout wrong, and the TIA Technology Object clamps it rather
+    # than refusing to run. It is still the first thing to bite after a
+    # calibration - fixing the scale by 625x drops the ceiling by 625x too.
+    def speed_warnings(self) -> list[str]:
+        out: list[str] = []
+        for axis, attr, label, unit in (
+            ("x", "vel_x", "tốc độ chạy ngang", "mm/s"),
+            ("z", "vel_z", "tốc độ lên xuống", "mm/s"),
+            ("y", "tilt_vel", "tốc độ lật", "°/s"),
+        ):
+            ceiling = self.max_velocity(axis)
+            wanted = float(getattr(self, attr))
+            if wanted > ceiling:
+                need = wanted * self.pulses_per_unit(axis)
+                out.append(
+                    f"{label} {wanted:g} {unit} vượt trần {ceiling:.0f} {unit} của "
+                    f"kênh PTO {PTO_MAX_HZ[axis] / 1000:.0f} kHz — cần {need / 1000:.0f} kHz. "
+                    f"Hạ xuống {ceiling:.0f} {unit} hoặc thấp hơn"
+                )
+        return out
 
     # ------------------------------------------------------------- kiem tra
 
@@ -299,35 +455,9 @@ class Geometry:
             issues.append(
                 f"goc lat {self.tilt_angle} do lon hon gioi han {self.y_max_angle} do")
 
-        issues.extend(self.velocity_limits())
         issues.extend(self.tilt_clearance())
         issues.extend(self.travel_clearance())
         issues.extend(self.reach_clearance())
-        return issues
-
-    # Toc do co vuot tran cua Technology Object trong TIA khong.
-    #
-    # Bat o day de nguoi dung sua lai con so, thay vi de PLC nhan roi chet giua
-    # chung: MC_MoveAbsolute tra ErrorID 16#8402 "Velocity khong hop le", FB nhay
-    # buoc 900 va may dung im cho lenh Reset. Co ghi chu san o 04_FB_XY_Tray.scl.
-    #
-    # write_geometry chi day xuong PLC khi problems() rong, nen gia tri qua tran
-    # van duoc luu de sua tiep nhung may giu nguyen toc do cu.
-    def velocity_limits(self) -> list[str]:
-        issues: list[str] = []
-        for axis, ten, toc_do, don_vi, moi in (
-            ("x", "X", self.vel_x, "mm/s", "xung/mm"),
-            ("z", "Z", self.vel_z, "mm/s", "xung/mm"),
-            ("y", "Y", self.tilt_vel, "do/s", "xung/do"),
-        ):
-            tran = self.max_velocity(axis)
-            if toc_do > tran:
-                moi_don_vi = (self.pulses_per_degree() if axis == "y"
-                              else self.pulses_per_mm(axis))
-                issues.append(
-                    f"{ten}: toc do {toc_do:g} {don_vi} vuot tran {tran:.1f} {don_vi} "
-                    f"({MAX_PULSE_HZ:g} xung/s / {moi_don_vi:g} {moi}) - "
-                    f"truc se bao loi 16#8402 va may dung tai cho")
         return issues
 
     # Mep khay co voi toi mieng ro khong.

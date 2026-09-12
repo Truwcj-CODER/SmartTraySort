@@ -6,10 +6,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import vn.hasaki.traysort.core.LocalS
+import vn.hasaki.traysort.core.S
 import vn.hasaki.traysort.ui.AppRoot
 import vn.hasaki.traysort.ui.AppViewModel
 import vn.hasaki.traysort.ui.LocalPane
@@ -31,9 +38,22 @@ class MainActivity : ComponentActivity() {
             // LocalConfiguration doi, moi thu tu xep lai.
             val pane = paneFor(LocalConfiguration.current.screenWidthDp)
 
+            // enableEdgeToEdge() cho app ve tran ra sau thanh he thong, va tu
+            // do app phai TU chua cho ban phim. Khong chua thi ban phim bung
+            // len de len o dang go - hoac tren may ao la khong ve ra gi ca.
             TraySortTheme(state.theme, pane.scale) {
-                CompositionLocalProvider(LocalPane provides pane) {
-                    AppRoot(vm, state)
+                CompositionLocalProvider(
+                    LocalPane provides pane,
+                    LocalS provides S(state.lang),
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .imePadding()
+                            .navigationBarsPadding(),
+                    ) {
+                        AppRoot(vm, state)
+                    }
                 }
             }
         }
